@@ -1,16 +1,22 @@
 const express = require('express');
 const app = express();
-
 const port = 3000;
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 let posts = [];
 let nextPostId = 1;
-
 let comments = [];
 let nextCommentId = 1;
 
 const validatePost = (data) => {
     const errors = [];
+    
+    if (!data) {
+        errors.push('Данные не переданы');
+        return errors;
+    }
     
     if (!data.title || data.title.trim() === '') {
         errors.push('Заголовок обязателен');
@@ -29,6 +35,11 @@ const validatePost = (data) => {
 
 const validateComment = (data) => {
     const errors = [];
+    
+    if (!data) {
+        errors.push('Данные не переданы');
+        return errors;
+    }
     
     if (!data.text || data.text.trim() === '') {
         errors.push('Текст комментария обязателен');
@@ -49,20 +60,54 @@ app.get('/posts', (req, res) => {
     });
 });
 
+app.get('/posts/stats', (req, res) => {
+    if (posts.length === 0) {
+        return res.json({
+            success: true,
+            data: {
+                totalPosts: 0,
+                totalComments: 0,
+                averageRating: 0,
+                popularPosts: []
+            }
+        });
+    }
+    
+    const totalRating = posts.reduce((sum, p) => sum + p.rating, 0);
+    const avgRating = totalRating / posts.length;
+    
+    const sortedPosts = [...posts].sort((a, b) => b.rating - a.rating);
+    const popularPosts = sortedPosts.slice(0, 3).map(p => ({
+        id: p.id,
+        title: p.title,
+        author: p.author,
+        rating: Math.round(p.rating * 100) / 100
+    }));
+    
+    res.json({
+        success: true,
+        data: {
+            totalPosts: posts.length,
+            totalComments: comments.length,
+            averageRating: Math.round(avgRating * 100) / 100,
+            popularPosts: popularPosts
+        }
+    });
+});
+
 app.get('/posts/:id', (req, res) => {
     const id = parseInt(req.params.id);
-
     const post = posts.find(p => p.id === id);
-
+    
     if (!post) {
         return res.status(404).json({
             success: false,
             error: `Пост с ID ${id} не найден`
         });
     }
-
+    
     const postComments = comments.filter(c => c.postId === id);
-
+    
     res.json({
         success: true,
         data: {
@@ -73,6 +118,13 @@ app.get('/posts/:id', (req, res) => {
 });
 
 app.post('/posts', (req, res) => {
+    if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({
+            success: false,
+            error: 'Тело запроса отсутствует. Отправьте JSON с полями: title, content, author'
+        });
+    }
+    
     const validationErrors = validatePost(req.body);
     
     if (validationErrors.length > 0) {
@@ -81,7 +133,7 @@ app.post('/posts', (req, res) => {
             errors: validationErrors
         });
     }
-
+    
     const newPost = {
         id: nextPostId++,
         title: req.body.title.trim(),
@@ -92,9 +144,9 @@ app.post('/posts', (req, res) => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };
-
+    
     posts.push(newPost);
-
+    
     res.status(201).json({
         success: true,
         data: newPost,
@@ -102,19 +154,24 @@ app.post('/posts', (req, res) => {
     });
 });
 
-// PUT /posts/:id
 app.put('/posts/:id', (req, res) => {
     const id = parseInt(req.params.id);
-
     const postIndex = posts.findIndex(p => p.id === id);
-
+    
     if (postIndex === -1) {
         return res.status(404).json({
             success: false,
             error: `Пост с ID ${id} не найден`
         });
     }
-
+    
+    if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({
+            success: false,
+            error: 'Тело запроса отсутствует'
+        });
+    }
+    
     const validationErrors = validatePost(req.body);
     
     if (validationErrors.length > 0) {
@@ -123,7 +180,7 @@ app.put('/posts/:id', (req, res) => {
             errors: validationErrors
         });
     }
-
+    
     const updatedPost = {
         ...posts[postIndex],
         title: req.body.title.trim(),
@@ -131,7 +188,7 @@ app.put('/posts/:id', (req, res) => {
         author: req.body.author.trim(),
         updatedAt: new Date().toISOString()
     };
-
+    
     posts[postIndex] = updatedPost;
     
     res.json({
@@ -141,10 +198,8 @@ app.put('/posts/:id', (req, res) => {
     });
 });
 
-// DELETE /posts/:id 
 app.delete('/posts/:id', (req, res) => {
     const id = parseInt(req.params.id);
-
     const postIndex = posts.findIndex(p => p.id === id);
     
     if (postIndex === -1) {
@@ -153,9 +208,8 @@ app.delete('/posts/:id', (req, res) => {
             error: `Пост с ID ${id} не найден`
         });
     }
-
+    
     posts.splice(postIndex, 1);
-
     comments = comments.filter(c => c.postId !== id);
     
     res.json({
@@ -166,7 +220,6 @@ app.delete('/posts/:id', (req, res) => {
 
 app.post('/posts/:id/comments', (req, res) => {
     const postId = parseInt(req.params.id);
-
     const post = posts.find(p => p.id === postId);
     
     if (!post) {
@@ -175,7 +228,14 @@ app.post('/posts/:id/comments', (req, res) => {
             error: `Пост с ID ${postId} не найден`
         });
     }
-
+    
+    if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({
+            success: false,
+            error: 'Тело запроса отсутствует'
+        });
+    }
+    
     const validationErrors = validateComment(req.body);
     
     if (validationErrors.length > 0) {
@@ -184,7 +244,7 @@ app.post('/posts/:id/comments', (req, res) => {
             errors: validationErrors
         });
     }
-
+    
     const newComment = {
         id: nextCommentId++,
         postId: postId,
@@ -205,7 +265,6 @@ app.post('/posts/:id/comments', (req, res) => {
 
 app.get('/posts/:id/comments', (req, res) => {
     const postId = parseInt(req.params.id);
-
     const post = posts.find(p => p.id === postId);
     
     if (!post) {
@@ -214,7 +273,7 @@ app.get('/posts/:id/comments', (req, res) => {
             error: `Пост с ID ${postId} не найден`
         });
     }
-
+    
     const postComments = comments.filter(c => c.postId === postId);
     
     res.json({
@@ -235,8 +294,15 @@ app.post('/posts/:id/rate', (req, res) => {
         });
     }
     
+    if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({
+            success: false,
+            error: 'Тело запроса отсутствует'
+        });
+    }
+    
     const { rating } = req.body;
-
+    
     if (!rating || typeof rating !== 'number' || rating < 1 || rating > 5) {
         return res.status(400).json({
             success: false,
@@ -258,58 +324,25 @@ app.post('/posts/:id/rate', (req, res) => {
     });
 });
 
-app.get('/posts/stats', (req, res) => {
-    if (posts.length === 0) {
-        return res.json({
-            success: true,
-            data: {
-                totalPosts: 0,
-                totalComments: 0,
-                averageRating: 0,
-                popularPosts: []
-            }
-        });
-    }
-
-    const totalRating = posts.reduce((sum, p) => sum + p.rating, 0);
-    const avgRating = totalRating / posts.length;
-
-    const sortedPosts = [...posts].sort((a, b) => b.rating - a.rating);
-    const popularPosts = sortedPosts.slice(0, 3).map(p => ({
-        id: p.id,
-        title: p.title,
-        author: p.author,
-        rating: Math.round(p.rating * 100) / 100
-    }));
-    
-    res.json({
-        success: true,
-        data: {
-            totalPosts: posts.length,
-            totalComments: comments.length,
-            averageRating: Math.round(avgRating * 100) / 100,
-            popularPosts: popularPosts
-        }
-    });
+app.use((req, res, next) => {
+    const err = new Error(`Маршрут ${req.originalUrl} не найден`);
+    err.status = 404;
+    next(err);
 });
-
-app.use(express.json());
-
-app.use(express.urlencoded({ extended: true }));
 
 app.use((err, req, res, next) => {
     console.error('Ошибка:', err.stack);
+    
     const statusCode = err.status || 500;
-
     const response = {
         success: false,
         error: err.message || 'Внутренняя ошибка сервера'
     };
-
+    
     if (err.errors) {
         response.errors = err.errors;
     }
-
+    
     if (process.env.NODE_ENV !== 'production') {
         response.stack = err.stack;
     }
@@ -317,13 +350,7 @@ app.use((err, req, res, next) => {
     res.status(statusCode).json(response);
 });
 
-app.use((req, res, next) => {
-    const err = new Error(`Маршрут ${req.originalUrl} не найден`);
-    err.status = 404;
-    next(err);
-});
-
 app.listen(port, () => {
     console.log(`Сервер запущен на порту ${port}`);
-    console.log(`Адрес: http://localhost:${port}`);
+    console.log(`http://localhost:${port}`);
 });
