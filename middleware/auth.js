@@ -1,36 +1,26 @@
 const jwt = require('jsonwebtoken');
 
-const getJwtSecret = () => {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error('Не задан JWT_SECRET в переменных окружения');
-  }
-  return secret;
-};
-
-const authenticateToken = (req, res, next) => {
+const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.startsWith('Bearer ')
-    ? authHeader.slice(7)
-    : null;
-
-  if (!token) {
-    return res.status(401).json({ success: false, error: 'Токен не предоставлен' });
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'Требуется авторизация' });
   }
-
+  const token = authHeader.split(' ')[1];
   try {
-    req.user = jwt.verify(token, getJwtSecret());
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'defaultsecret');
+    req.user = decoded;
     next();
   } catch (err) {
-    return res.status(401).json({ success: false, error: 'Недействительный или истёкший токен' });
+    return res.status(401).json({ success: false, error: 'Неверный или просроченный токен' });
   }
 };
 
 const isAdmin = (req, res, next) => {
-  if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).json({ success: false, error: 'Требуются права администратора' });
+  if (req.user && req.user.role === 'admin') {
+    next();
+  } else {
+    res.status(403).json({ success: false, error: 'Доступ запрещён' });
   }
-  next();
 };
 
-module.exports = { authenticateToken, isAdmin, getJwtSecret };
+module.exports = { authMiddleware, isAdmin };
