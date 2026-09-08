@@ -1,40 +1,44 @@
-require('dotenv').config();
 const express = require('express');
-const { Post, Comment } = require('./models');
+const { Post, Comment, Sequelize } = require('../models');
+const { authenticateToken, isAdmin } = require('../middleware/auth');
 
-const app = express();
-const port = 3000;
+const router = express.Router();
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.get('/posts', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const posts = await Post.findAll({
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const offset = parseInt(req.query.offset, 10) || 0;
+
+    const { rows: posts, count } = await Post.findAndCountAll({
       include: [{ model: Comment, as: 'comments' }],
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
+      limit,
+      offset,
+      distinct: true
     });
+
     res.json({
       success: true,
       data: posts,
-      count: posts.length
+      count,
+      limit,
+      offset
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-app.get('/posts/stats', async (req, res) => {
+router.get('/stats', async (req, res) => {
   try {
     const totalPosts = await Post.count();
     const totalComments = await Comment.count();
-
-    const avgResult = await Post.findOne({
-      attributes: [[Post.sequelize.fn('AVG', Post.sequelize.col('rating')), 'avg']]
+    const avgRatingResult = await Post.findAll({
+      attributes: [[Sequelize.fn('AVG', Sequelize.col('rating')), 'avgRating']],
+      raw: true
     });
-    const avgRating = parseFloat(avgResult.dataValues.avg) || 0;
-
-    const popular = await Post.findAll({
+    const avgRating = parseFloat(avgRatingResult[0].avgRating) || 0;
+    const popularPosts = await Post.findAll({
       order: [['rating', 'DESC']],
       limit: 3,
       attributes: ['id', 'title', 'author', 'rating']
@@ -46,7 +50,7 @@ app.get('/posts/stats', async (req, res) => {
         totalPosts,
         totalComments,
         averageRating: avgRating,
-        popularPosts: popular
+        popularPosts
       }
     });
   } catch (err) {
@@ -54,28 +58,38 @@ app.get('/posts/stats', async (req, res) => {
   }
 });
 
-app.get('/posts/:id', async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id, 10);
     const post = await Post.findByPk(id, {
       include: [{ model: Comment, as: 'comments' }]
     });
     if (!post) {
       return res.status(404).json({ success: false, error: 'Пост не найден' });
     }
+
+    await post.increment('views');
+    await post.reload({ include: [{ model: Comment, as: 'comments' }] });
+
     res.json({ success: true, data: post });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-app.post('/posts', async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const { title, content, author } = req.body;
-    if (!title || !content || !author) {
-      return res.status(400).json({ success: false, error: 'Все поля обязательны' });
+    if (!title || !content) {
+      return res.status(400).json({ success: false, error: 'Заголовок и содержимое обязательны' });
     }
-    const newPost = await Post.create({ title, content, author });
+
+    const newPost = await Post.create({
+      title,
+      content,
+      author: author || req.user.email
+    });
+
     res.status(201).json({
       success: true,
       data: newPost,
@@ -86,14 +100,20 @@ app.post('/posts', async (req, res) => {
   }
 });
 
-app.put('/posts/:id', async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id, 10);
     const { title, content, author } = req.body;
+
+    if (!title || !content || !author) {
+      return res.status(400).json({ success: false, error: 'Все поля обязательны' });
+    }
+
     const post = await Post.findByPk(id);
     if (!post) {
       return res.status(404).json({ success: false, error: 'Пост не найден' });
     }
+
     await post.update({ title, content, author });
     res.json({
       success: true,
@@ -105,9 +125,9 @@ app.put('/posts/:id', async (req, res) => {
   }
 });
 
-app.delete('/posts/:id', async (req, res) => {
+router.delete('/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id, 10);
     const deleted = await Post.destroy({ where: { id } });
     if (!deleted) {
       return res.status(404).json({ success: false, error: 'Пост не найден' });
@@ -118,18 +138,26 @@ app.delete('/posts/:id', async (req, res) => {
   }
 });
 
-app.post('/posts/:id/comments', async (req, res) => {
+router.post('/:id/comments', authenticateToken, async (req, res) => {
   try {
-    const postId = parseInt(req.params.id);
+    const postId = parseInt(req.params.id, 10);
     const { text, author } = req.body;
-    if (!text || !author) {
-      return res.status(400).json({ success: false, error: 'Текст и автор обязательны' });
+
+    if (!text) {
+      return res.status(400).json({ success: false, error: 'Текст комментария обязателен' });
     }
+
     const post = await Post.findByPk(postId);
     if (!post) {
       return res.status(404).json({ success: false, error: 'Пост не найден' });
     }
-    const comment = await Comment.create({ text, author, postId });
+
+    const comment = await Comment.create({
+      text,
+      author: author || req.user.email,
+      postId
+    });
+
     res.status(201).json({
       success: true,
       data: comment,
@@ -140,9 +168,9 @@ app.post('/posts/:id/comments', async (req, res) => {
   }
 });
 
-app.get('/posts/:id/comments', async (req, res) => {
+router.get('/:id/comments', async (req, res) => {
   try {
-    const postId = parseInt(req.params.id);
+    const postId = parseInt(req.params.id, 10);
     const comments = await Comment.findAll({
       where: { postId },
       order: [['createdAt', 'ASC']]
@@ -157,21 +185,45 @@ app.get('/posts/:id/comments', async (req, res) => {
   }
 });
 
-app.post('/posts/:id/rate', async (req, res) => {
+router.get('/:id/rate', async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
-    const { rating } = req.body;
-    if (!rating || typeof rating !== 'number' || rating < 1 || rating > 5) {
-      return res.status(400).json({ success: false, error: 'Рейтинг должен быть числом от 1 до 5' });
-    }
+    const id = parseInt(req.params.id, 10);
     const post = await Post.findByPk(id);
     if (!post) {
       return res.status(404).json({ success: false, error: 'Пост не найден' });
     }
-    const total = post.rating * post.ratingCount + rating;
+    res.json({
+      success: true,
+      data: {
+        averageRating: Math.round(post.rating * 100) / 100,
+        ratingCount: post.ratingCount
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/:id/rate', authenticateToken, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { rating } = req.body;
+    const value = Number(rating);
+
+    if (!Number.isFinite(value) || value < 1 || value > 5) {
+      return res.status(400).json({ success: false, error: 'Рейтинг должен быть числом от 1 до 5' });
+    }
+
+    const post = await Post.findByPk(id);
+    if (!post) {
+      return res.status(404).json({ success: false, error: 'Пост не найден' });
+    }
+
+    const totalRating = (post.rating * post.ratingCount) + value;
     post.ratingCount += 1;
-    post.rating = total / post.ratingCount;
+    post.rating = totalRating / post.ratingCount;
     await post.save();
+
     res.json({
       success: true,
       data: {
@@ -185,23 +237,4 @@ app.post('/posts/:id/rate', async (req, res) => {
   }
 });
 
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    error: `Маршрут ${req.originalUrl} не найден`
-  });
-});
-
-app.use((err, req, res, next) => {
-  console.error('Ошибка:', err.stack);
-  const statusCode = err.status || 500;
-  res.status(statusCode).json({
-    success: false,
-    error: err.message || 'Внутренняя ошибка сервера'
-  });
-});
-
-app.listen(port, () => {
-  console.log(`Сервер запущен на порту ${port}`);
-  console.log(`http://localhost:${port}`);
-});
+module.exports = router;

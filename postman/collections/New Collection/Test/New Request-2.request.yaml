@@ -1,0 +1,13 @@
+$kind: http-request
+name: New Request
+url: http://localhost:3000/posts
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "title": "Мой первый пост",
+      "content": "Текст поста",
+      "author": "Иван"
+    }
+order: 3113099157509628

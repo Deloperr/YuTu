@@ -1,0 +1,11 @@
+$kind: http-request
+name: New Request
+url: http://localhost:3000/posts/1/rate
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "rating": 5
+    }
+order: 4498036696142424

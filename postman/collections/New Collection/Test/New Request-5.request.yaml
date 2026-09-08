@@ -1,0 +1,5 @@
+$kind: http-request
+name: New Request
+url: http://localhost:3000/posts/stats
+method: GET
+order: 4303940403232890

@@ -1,4 +1,7 @@
 $kind: http-request
-url: ""
+url: http://localhost:3000/posts
 method: GET
+body:
+  type: json
+  content: ""
 order: 1788378832485

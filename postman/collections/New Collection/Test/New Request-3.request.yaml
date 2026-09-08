@@ -1,0 +1,13 @@
+$kind: http-request
+name: New Request
+url: http://localhost:3000/posts/1
+method: PUT
+body:
+  type: json
+  content: |-
+    {
+      "title": "Новый заголовок",
+      "content": "Новое содержимое",
+      "author": "Пётр"
+    }
+order: 3190257209733057

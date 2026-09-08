@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>YuTu — лента постов</title>
+  <style>
+    :root {
+      --bg: #0f1412;
+      --panel: #18201c;
+      --line: #2c3a33;
+      --text: #e8efe9;
+      --muted: #9aada2;
+      --accent: #d4a84b;
+      --ok: #7dba7a;
+      --err: #e07a6a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+      background:
+        radial-gradient(1200px 500px at 10% -10%, #24332c 0%, transparent 55%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 20px 28px;
+      border-bottom: 1px solid var(--line);
+    }
+    h1 { margin: 0; font-size: 28px; letter-spacing: 0.08em; }
+    h1 span { color: var(--accent); }
+    main {
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) 1fr;
+      gap: 24px;
+      padding: 24px 28px 48px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+    }
+    label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+    input, textarea, button, select {
+      width: 100%;
+      font: inherit;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #101714;
+      color: var(--text);
+      padding: 10px 12px;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+    button {
+      margin-top: 12px;
+      background: var(--accent);
+      color: #1a1408;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+    }
+    button.secondary { background: transparent; color: var(--text); border: 1px solid var(--line); }
+    .row { display: flex; gap: 8px; }
+    .row > * { flex: 1; }
+    .status { min-height: 1.4em; font-size: 14px; color: var(--muted); margin-top: 8px; }
+    .status.ok { color: var(--ok); }
+    .status.err { color: var(--err); }
+    .post {
+      border-bottom: 1px solid var(--line);
+      padding: 16px 0;
+    }
+    .post:last-child { border-bottom: none; }
+    .meta { color: var(--muted); font-size: 13px; }
+    .hidden { display: none; }
+    @media (max-width: 800px) {
+      main { grid-template-columns: 1fr; }
+      header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Yu<span>Tu</span></h1>
+      <div class="meta">Блог-платформа: лента, комментарии, JWT-авторизация</div>
+    </div>
+    <div id="session" class="meta">Вы не вошли</div>
+  </header>
+  <main>
+    <aside>
+      <section class="card" id="auth-card">
+        <h2>Вход и регистрация</h2>
+        <label>Email</label>
+        <input id="email" type="email" value="user@yutu.local">
+        <label>Пароль</label>
+        <input id="password" type="password" value="User123!">
+        <div class="row">
+          <button type="button" id="login-btn">Войти</button>
+          <button type="button" class="secondary" id="register-btn">Регистрация</button>
+        </div>
+        <button type="button" class="secondary" id="logout-btn">Выйти</button>
+        <p class="status" id="auth-status">Демо: user@yutu.local / User123! или admin@yutu.local / Admin123!</p>
+      </section>
+      <section class="card hidden" id="create-card">
+        <h2>Новый пост</h2>
+        <label>Заголовок</label>
+        <input id="title" placeholder="Название">
+        <label>Текст</label>
+        <textarea id="content" placeholder="Содержание"></textarea>
+        <button type="button" id="create-btn">Опубликовать</button>
+        <p class="status" id="create-status"></p>
+      </section>
+    </aside>
+    <section class="card">
+      <h2>Лента</h2>
+      <div id="feed"><p class="meta">Загрузка…</p></div>
+    </section>
+  </main>
+  <script>
+    const api = (path, options = {}) => {
+      const headers = { ...(options.headers || {}) };
+      const token = localStorage.getItem('token');
+      if (!(options.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+      }
+      if (token) headers.Authorization = 'Bearer ' + token;
+      return fetch(path, { ...options, headers }).then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || ('Ошибка ' + res.status));
+        return data;
+      });
+    };
+
+    const setStatus = (id, message, ok) => {
+      const el = document.getElementById(id);
+      el.textContent = message;
+      el.className = 'status ' + (ok ? 'ok' : 'err');
+    };
+
+    const renderSession = (user) => {
+      const session = document.getElementById('session');
+      const createCard = document.getElementById('create-card');
+      if (!user) {
+        session.textContent = 'Вы не вошли';
+        createCard.classList.add('hidden');
+        return;
+      }
+      session.textContent = user.email + ' · ' + user.role;
+      createCard.classList.remove('hidden');
+    };
+
+    const loadFeed = async () => {
+      const feed = document.getElementById('feed');
+      try {
+        const result = await api('/posts');
+        if (!result.data.length) {
+          feed.innerHTML = '<p class="meta">Постов пока нет</p>';
+          return;
+        }
+        feed.innerHTML = result.data.map((post) => `
+          <article class="post">
+            <h3>${escapeHtml(post.title)}</h3>
+            <p class="meta">${escapeHtml(post.author)} · рейтинг ${Number(post.rating || 0).toFixed(1)} · ${post.views || 0} просмотров · комментариев ${post.comments ? post.comments.length : 0}</p>
+            <p>${escapeHtml(post.content)}</p>
+          </article>
+        `).join('');
+      } catch (err) {
+        feed.innerHTML = '<p class="status err">' + escapeHtml(err.message) + '</p>';
+      }
+    };
+
+    const escapeHtml = (value) => String(value)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;');
+
+    const saveAuth = (payload) => {
+      localStorage.setItem('token', payload.token);
+      localStorage.setItem('user', JSON.stringify(payload.user));
+      renderSession(payload.user);
+    };
+
+    document.getElementById('login-btn').onclick = async () => {
+      try {
+        const result = await api('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value
+          })
+        });
+        saveAuth(result.data);
+        setStatus('auth-status', result.message, true);
+      } catch (err) {
+        setStatus('auth-status', err.message, false);
+      }
+    };
+
+    document.getElementById('register-btn').onclick = async () => {
+      try {
+        await api('/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value
+          })
+        });
+        setStatus('auth-status', 'Регистрация успешна, теперь войдите', true);
+      } catch (err) {
+        setStatus('auth-status', err.message, false);
+      }
+    };
+
+    document.getElementById('logout-btn').onclick = () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      renderSession(null);
+      setStatus('auth-status', 'Вы вышли. JWT удалён с клиента', true);
+    };
+
+    document.getElementById('create-btn').onclick = async () => {
+      try {
+        await api('/posts', {
+          method: 'POST',
+          body: JSON.stringify({
+            title: document.getElementById('title').value,
+            content: document.getElementById('content').value
+          })
+        });
+        document.getElementById('title').value = '';
+        document.getElementById('content').value = '';
+        setStatus('create-status', 'Пост опубликован', true);
+        loadFeed();
+      } catch (err) {
+        setStatus('create-status', err.message, false);
+      }
+    };
+
+    const stored = localStorage.getItem('user');
+    renderSession(stored ? JSON.parse(stored) : null);
+    if (localStorage.getItem('token')) {
+      api('/profile').then((result) => renderSession(result.data)).catch(() => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        renderSession(null);
+      });
+    }
+    loadFeed();
+  </script>
+</body>
+</html>
