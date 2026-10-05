@@ -1,6 +1,4 @@
--- Схема БД блоговой платформы.
--- Ограничения CHECK дублируют серверную валидацию: даже при обходе
--- приложения в таблицы не попадут пустые строки, отрицательные числа и т.п.
+-- Посты
 
 CREATE TABLE IF NOT EXISTS posts (
   id          SERIAL PRIMARY KEY,
@@ -13,6 +11,7 @@ CREATE TABLE IF NOT EXISTS posts (
   created_at  TIMESTAMPTZ   NOT NULL DEFAULT clock_timestamp()
 );
 
+-- Комментарии
 CREATE TABLE IF NOT EXISTS comments (
   id          SERIAL PRIMARY KEY,
   post_id     INTEGER       NOT NULL REFERENCES posts(id) ON DELETE CASCADE,

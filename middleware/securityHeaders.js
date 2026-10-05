@@ -1,4 +1,4 @@
-// Общие заголовки для всех ответов.
+// Заголовки ответа
 function securityHeaders(req, res, next) {
   res.set({
     'X-Content-Type-Options': 'nosniff',

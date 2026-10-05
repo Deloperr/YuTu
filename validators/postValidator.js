@@ -1,12 +1,13 @@
-// Правила проверки формы добавления поста.
+// Проверка поста
 const { validate } = require('./rules');
 
 const CATEGORIES = ['Технологии', 'Наука', 'Путешествия', 'Личное', 'Обучение', 'Другое'];
 
-// Имя: буквы (кириллица/латиница), пробел, дефис, апостроф, точка; начинается с буквы.
+// Формат имени
 const NAME_PATTERN = /^\p{L}[\p{L} .'’-]*$/u;
 const NAME_MESSAGE = 'Только буквы, пробел, дефис, апостроф или точка; первая — буква';
 
+// Правила полей
 const postSchema = {
   title:     { type: 'text', label: 'Заголовок', min: 5, max: 120 },
   author:    { type: 'text', label: 'Автор', min: 2, max: 50, pattern: NAME_PATTERN, patternMessage: NAME_MESSAGE },

@@ -4,8 +4,6 @@
   <h1>Новый пост</h1>
 </div>
 
-<%# novalidate: проверку выполняет сервер, чтобы сообщения были единообразными
-    и не зависели от браузера; maxlength лишь не даёт набрать лишнее. %>
 <form class="card form" method="post" action="/add" novalidate>
   <% if (Object.keys(errors).length) { %>
     <div class="notice notice-error">

@@ -1,4 +1,4 @@
-// Пул подключений к PostgreSQL (node-postgres).
+// Подключение к PostgreSQL
 const { Pool } = require('pg');
 
 const dbConfig = {
@@ -11,7 +11,7 @@ const dbConfig = {
 
 const pool = new Pool({ ...dbConfig, max: 10, idleTimeoutMillis: 30000 });
 
-// Ошибка «простаивающего» клиента не должна ронять весь процесс.
+// Ошибки пула
 pool.on('error', (err) => {
   console.error('[DB] Ошибка простаивающего клиента:', err.message);
 });

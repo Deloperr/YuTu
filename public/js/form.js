@@ -1,5 +1,4 @@
-// Счётчик символов для полей с атрибутом data-counter.
-// Валидацию выполняет сервер; здесь только подсказка пользователю.
+// Счётчик символов
 document.querySelectorAll('[data-counter][maxlength]').forEach((field) => {
   const hint = field.parentElement.querySelector('.hint');
   if (!hint) return;

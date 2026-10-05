@@ -1,4 +1,4 @@
-<%# Звёзды рейтинга. Параметры: value (0–5 или null), count (необязательно) %>
+<%# Рейтинг: число закрашенных звёзд = округление средней оценки %>
 <% const r = value ? Math.round(value) : 0; %>
 <span class="stars" title="<%= value ? `Средняя оценка ${value} из 5` : 'Оценок пока нет' %>">
   <span class="stars-on"><%= '★'.repeat(r) %></span><span class="stars-off"><%= '★'.repeat(5 - r) %></span>

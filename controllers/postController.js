@@ -1,5 +1,4 @@
-// Контроллер постов: список, детальная страница, добавление поста и комментария.
-// Express 5 сам передаёт ошибки async-функций в errorHandler — try/catch не нужен.
+// Посты и комментарии
 const Post = require('../models/postModel');
 const Comment = require('../models/commentModel');
 const { validatePost, postSchema, CATEGORIES } = require('../validators/postValidator');
@@ -8,7 +7,7 @@ const { validateComment, commentSchema } = require('../validators/commentValidat
 const EMPTY_POST = { title: '', author: '', category: '', read_time: '', content: '' };
 const EMPTY_COMMENT = { author: '', text: '', rating: '' };
 
-// ID из URL: только положительное целое в пределах INTEGER PostgreSQL.
+// Разбор ID из адреса
 function parseId(raw) {
   if (!/^\d{1,9}$/.test(raw)) return null;
   const id = Number(raw);
@@ -25,7 +24,7 @@ async function list(req, res) {
   });
 }
 
-// Общий рендер детальной страницы (используется и при ошибке в форме комментария).
+// Вывод страницы поста
 async function renderItem(res, post, { status = 200, values = EMPTY_COMMENT, errors = {}, added = false } = {}) {
   const comments = await Comment.findByPostId(post.id);
   res.status(status).render('item', {
@@ -42,7 +41,7 @@ async function renderItem(res, post, { status = 200, values = EMPTY_COMMENT, err
 // GET /item/:id — детальная страница
 async function show(req, res, next) {
   const id = parseId(req.params.id);
-  if (!id) return next(); // некорректный ID → 404
+  if (!id) return next();
 
   await Post.incrementViews(id);
   const post = await Post.findById(id);

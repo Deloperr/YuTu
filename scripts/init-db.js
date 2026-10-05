@@ -1,6 +1,4 @@
-// Инициализация БД: создаёт базу (если её нет), таблицы и начальные данные.
-// Запуск: npm run db:init        — создать, если нет
-//         npm run db:reset       — пересоздать таблицы с нуля
+// Создание БД, таблиц и начальных данных
 require('dotenv').config({ quiet: true });
 const fs = require('fs');
 const path = require('path');
@@ -9,14 +7,13 @@ const { dbConfig } = require('../config/db');
 
 const reset = process.argv.includes('--reset');
 
+// Создание БД
 async function ensureDatabase() {
-  // Подключаемся к служебной БД postgres, чтобы создать рабочую.
   const admin = new Client({ ...dbConfig, database: 'postgres' });
   await admin.connect();
   try {
     const { rowCount } = await admin.query('SELECT 1 FROM pg_database WHERE datname = $1', [dbConfig.database]);
     if (rowCount === 0) {
-      // Имя БД нельзя передать параметром — экранируем как идентификатор.
       await admin.query(`CREATE DATABASE "${dbConfig.database.replace(/"/g, '""')}"`);
       console.log(`База данных «${dbConfig.database}» создана`);
     }
@@ -25,6 +22,7 @@ async function ensureDatabase() {
   }
 }
 
+// Таблицы и данные
 async function main() {
   await ensureDatabase();
 

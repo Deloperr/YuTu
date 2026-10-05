@@ -1,4 +1,4 @@
-// Запросы к таблице comments.
+// Комментарии
 const { pool } = require('../config/db');
 
 async function findByPostId(postId) {

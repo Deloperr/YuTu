@@ -1,7 +1,7 @@
-// Запросы к таблице posts. Все значения передаются параметрами ($1, $2…) — защита от SQL-инъекций.
+// Посты
 const { pool } = require('../config/db');
 
-// Средний рейтинг и число комментариев считаются по таблице comments.
+// Средний рейтинг = ROUND(AVG(rating), 1), число комментариев = COUNT(comments)
 const SELECT_WITH_STATS = `
   SELECT p.*,
          COUNT(c.id)::int                      AS comments_count,
@@ -23,8 +23,7 @@ async function incrementViews(id) {
   await pool.query('UPDATE posts SET views = views + 1 WHERE id = $1', [id]);
 }
 
-// Защита от двойной отправки формы: тот же заголовок и автор за последнюю минуту.
-// Регистр сравниваем в JS: lower() в PostgreSQL с локалью C не работает с кириллицей.
+// Поиск повторного поста за последнюю минуту
 async function existsRecentDuplicate({ title, author }) {
   const { rows } = await pool.query(
     "SELECT title, author FROM posts WHERE created_at > now() - interval '1 minute'",

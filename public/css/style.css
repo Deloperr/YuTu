@@ -38,7 +38,7 @@ h2 { font-size: 1.3rem; }
 .container { width: 100%; max-width: 920px; margin: 0 auto; padding: 0 16px; }
 main.container { flex: 1; padding-top: 28px; padding-bottom: 40px; }
 
-/* ---------- Шапка ---------- */
+/* Шапка */
 .site-header { background: var(--surface); border-bottom: 1px solid var(--border); }
 .header-inner { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; padding-top: 12px; padding-bottom: 12px; }
 .logo { font-weight: 700; font-size: 1.15rem; color: var(--text); }
@@ -59,7 +59,7 @@ main.container { flex: 1; padding-top: 28px; padding-bottom: 40px; }
 .footer-service { flex-direction: column; gap: 4px; font-size: .85rem; }
 .footer-copy { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted); font-size: .8rem; }
 
-/* ---------- Кнопки ---------- */
+/* Кнопки */
 .btn {
   display: inline-block; border: 1px solid var(--accent); background: var(--accent); color: #fff;
   padding: 9px 18px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer;
@@ -69,7 +69,7 @@ main.container { flex: 1; padding-top: 28px; padding-bottom: 40px; }
 .btn-ghost:hover { background: var(--accent-soft); }
 .btn-small { padding: 4px 12px; font-size: .9rem; }
 
-/* ---------- Карточки и списки ---------- */
+/* Карточки и списки */
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 22px; }
 .page-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
 .post-list { display: grid; gap: 16px; }
@@ -88,7 +88,7 @@ main.container { flex: 1; padding-top: 28px; padding-bottom: 40px; }
 .post-full h1 { margin-top: 12px; overflow-wrap: anywhere; }
 .post-content { margin-top: 18px; white-space: pre-line; overflow-wrap: anywhere; }
 
-/* ---------- Рейтинг ---------- */
+/* Рейтинг */
 .stars { display: inline-flex; align-items: center; gap: 2px; font-size: .95rem; white-space: nowrap; }
 .stars-on { color: var(--star); letter-spacing: 1px; }
 .stars-off { color: #d5d8e2; letter-spacing: 1px; }
@@ -102,14 +102,14 @@ main.container { flex: 1; padding-top: 28px; padding-bottom: 40px; }
 .rating-input input:checked ~ label { color: var(--star); }
 .rating-input input:focus-visible + label { outline: 2px solid var(--accent); border-radius: 4px; }
 
-/* ---------- Комментарии ---------- */
+/* Комментарии */
 .comments { margin-top: 32px; }
 .comment-list { list-style: none; padding: 0; margin: 20px 0 0; display: grid; gap: 12px; }
 .comment { padding: 14px 18px; }
 .comment-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .comment-text { margin: 6px 0 8px; white-space: pre-line; overflow-wrap: anywhere; }
 
-/* ---------- Формы ---------- */
+/* Формы */
 .form { display: grid; gap: 16px; }
 .form h3 { margin: 0; }
 .form-row { display: grid; grid-template-columns: 2fr 1.4fr 1fr; gap: 16px; }
@@ -136,7 +136,7 @@ main.container { flex: 1; padding-top: 28px; padding-bottom: 40px; }
 
 .narrow { max-width: 520px; margin: 20px auto; }
 
-/* ---------- Страницы ошибок ---------- */
+/* Страницы ошибок */
 .error-page { text-align: center; padding: 40px 0 20px; }
 .error-code { font-size: 6rem; font-weight: 800; line-height: 1; color: var(--accent); opacity: .85; }
 .error-page h1 { margin-top: 10px; }

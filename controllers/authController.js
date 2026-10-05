@@ -1,7 +1,7 @@
-// Вход и выход: состояние входа хранится в cookie auth=1.
+// Вход и выход
 const { AUTH_COOKIE } = require('../middleware/auth');
 
-// Разрешаем возврат только на локальный путь (защита от open redirect: //evil.com).
+// Адрес возврата после входа
 function safeNext(raw) {
   return typeof raw === 'string' && /^\/(?![/\\])/.test(raw) ? raw : '/';
 }

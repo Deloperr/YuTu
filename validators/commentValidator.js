@@ -1,4 +1,4 @@
-// Правила проверки формы комментария с оценкой.
+// Проверка комментария
 const { validate } = require('./rules');
 const { NAME_PATTERN, NAME_MESSAGE } = require('./postValidator');
 
