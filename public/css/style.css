@@ -53,7 +53,13 @@ main.container { flex: 1; padding-top: 28px; padding-bottom: 40px; }
 .user-name { color: var(--muted); font-size: .95rem; }
 .user-name.is-auth { color: var(--success); font-weight: 600; }
 
-.site-footer { border-top: 1px solid var(--border); padding: 18px 0; color: var(--muted); font-size: .85rem; text-align: center; }
+.site-footer { background: var(--surface); border-top: 1px solid var(--border); padding: 24px 0 16px; font-size: .9rem; }
+.footer-inner { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
+.footer-logo { font-weight: 700; margin-bottom: 4px; }
+.footer-nav { display: flex; gap: 18px; flex-wrap: wrap; }
+.footer-nav a { color: var(--muted); }
+.footer-nav a:hover { color: var(--accent); }
+.footer-copy { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted); font-size: .8rem; }
 
 /* ---------- Кнопки ---------- */
 .btn {

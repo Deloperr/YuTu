@@ -1,8 +1,17 @@
 </main>
 <footer class="site-footer">
-  <div class="container">
-    ПЗ №1 «Middleware и шаблонизаторы» · Express + EJS + PostgreSQL + nginx
+  <div class="container footer-inner">
+    <div>
+      <div class="footer-logo">✎ БлогПлатформа</div>
+      <div class="muted">Пишите посты, обсуждайте и оценивайте публикации.</div>
+    </div>
+    <nav class="footer-nav">
+      <a href="/">Все посты</a>
+      <a href="/add">Новый пост</a>
+      <a href="/login">Вход</a>
+    </nav>
   </div>
+  <div class="container footer-copy">© <%= new Date().getFullYear() %> БлогПлатформа</div>
 </footer>
 <script src="/js/form.js" defer></script>
 </body>
