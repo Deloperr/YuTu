@@ -1,0 +1,10 @@
+<%- include('partials/header') %>
+
+<div class="error-page">
+  <div class="error-code"><%= status %></div>
+  <h1>Некорректный запрос</h1>
+  <p><%= message %></p>
+  <p><a class="btn" href="javascript:history.back()">Назад</a> <a class="btn btn-ghost" href="/">На главную</a></p>
+</div>
+
+<%- include('partials/footer') %>

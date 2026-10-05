@@ -1,0 +1,85 @@
+<%- include('partials/header') %>
+
+<p><a href="/" class="back-link">← Ко всем постам</a></p>
+
+<article class="card post-full">
+  <div class="post-card-top">
+    <span class="badge"><%= post.category %></span>
+    <%- include('partials/stars', { value: post.avg_rating, count: post.comments_count }) %>
+  </div>
+  <h1><%= post.title %></h1>
+  <div class="meta">
+    <span>✍ <%= post.author %></span>
+    <span>⏱ <%= post.read_time %> мин чтения</span>
+    <span>👁 <%= post.views %> <%= plural(post.views, ['просмотр', 'просмотра', 'просмотров']) %></span>
+    <span class="meta-time">🕒 Создан: <%= formatDate(post.created_at) %></span>
+  </div>
+  <div class="post-content"><%= post.content %></div>
+</article>
+
+<section id="comments" class="comments">
+  <h2>Комментарии и оценки (<%= comments.length %>)</h2>
+
+  <% if (added) { %>
+    <div class="notice notice-success">Спасибо! Ваш комментарий и оценка сохранены.</div>
+  <% } %>
+
+  <form class="card form" method="post" action="/item/<%= post.id %>/comments#comments" novalidate>
+    <h3>Оставить комментарий</h3>
+    <% if (Object.keys(errors).length) { %>
+      <div class="notice notice-error">Комментарий не сохранён: исправьте ошибки в отмеченных полях.</div>
+    <% } %>
+
+    <div class="form-row">
+      <div class="field <%= errors.author ? 'has-error' : '' %>">
+        <label for="author">Ваше имя <span class="req">*</span></label>
+        <input id="author" name="author" type="text" value="<%= values.author %>"
+               maxlength="<%= schema.author.max %>" data-counter
+               placeholder="Например, Анна">
+        <div class="hint"><%= schema.author.min %>–<%= schema.author.max %> символов, только буквы</div>
+        <%- include('partials/field-error', { name: 'author' }) %>
+      </div>
+
+      <div class="field field-rating <%= errors.rating ? 'has-error' : '' %>">
+        <label>Оценка <span class="req">*</span></label>
+        <div class="rating-input">
+          <% for (let i = 5; i >= 1; i--) { %>
+            <input type="radio" id="rating-<%= i %>" name="rating" value="<%= i %>" <%= String(values.rating) === String(i) ? 'checked' : '' %>>
+            <label for="rating-<%= i %>" title="<%= i %> из 5">★</label>
+          <% } %>
+        </div>
+        <div class="hint">от 1 до 5</div>
+        <%- include('partials/field-error', { name: 'rating' }) %>
+      </div>
+    </div>
+
+    <div class="field <%= errors.text ? 'has-error' : '' %>">
+      <label for="text">Комментарий <span class="req">*</span></label>
+      <textarea id="text" name="text" rows="4" maxlength="<%= schema.text.max %>" data-counter
+                placeholder="Что вы думаете о посте?"><%= values.text %></textarea>
+      <div class="hint"><%= schema.text.min %>–<%= schema.text.max %> символов</div>
+      <%- include('partials/field-error', { name: 'text' }) %>
+    </div>
+
+    <button type="submit" class="btn">Отправить</button>
+  </form>
+
+  <% if (comments.length === 0) { %>
+    <div class="empty">Комментариев пока нет — будьте первым!</div>
+  <% } else { %>
+    <ul class="comment-list">
+      <% comments.forEach((c) => { %>
+        <li class="card comment">
+          <div class="comment-head">
+            <strong><%= c.author %></strong>
+            <%- include('partials/stars', { value: c.rating }) %>
+          </div>
+          <div class="comment-text"><%= c.text %></div>
+          <div class="meta"><span class="meta-time">🕒 <%= formatDate(c.created_at) %></span></div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</section>
+
+<%- include('partials/footer') %>

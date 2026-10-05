@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= pageTitle %> — БлогПлатформа</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="logo" href="/">✎ БлогПлатформа</a>
+    <nav class="nav">
+      <% const path = typeof currentPath !== 'undefined' ? currentPath : ''; %>
+      <a href="/" class="<%= path === '/' ? 'active' : '' %>">Все посты</a>
+      <a href="/add" class="<%= path === '/add' ? 'active' : '' %>">Новый пост</a>
+      <span class="nav-sep"></span>
+      <a href="/demo/500" class="nav-demo" title="Демонстрация страницы ошибки 500">Демо 500</a>
+      <a href="/demo/500-async" class="nav-demo" title="Ошибка в асинхронном запросе к БД">Демо 500 (БД)</a>
+      <a href="/no-such-page" class="nav-demo" title="Демонстрация страницы 404">Демо 404</a>
+    </nav>
+    <div class="user-box">
+      <span class="user-name <%= user.isAuthenticated ? 'is-auth' : '' %>">👤 <%= user.name %></span>
+      <% if (user.isAuthenticated) { %>
+        <a href="/logout" class="btn btn-small btn-ghost">Выйти</a>
+      <% } else { %>
+        <a href="/login" class="btn btn-small">Войти</a>
+      <% } %>
+    </div>
+  </div>
+</header>
+<main class="container">

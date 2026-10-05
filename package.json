@@ -1,0 +1,28 @@
+{
+  "name": "blog-pz21",
+  "version": "1.0.0",
+  "description": "ПЗ №1: блоговая платформа с комментариями и рейтингами (Express + EJS + PostgreSQL + nginx)",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "db:init": "node scripts/init-db.js",
+    "db:reset": "node scripts/init-db.js --reset",
+    "nginx:start": "nginx -p \"$PWD/nginx\" -c nginx.conf",
+    "nginx:stop": "nginx -p \"$PWD/nginx\" -c nginx.conf -s stop",
+    "nginx:reload": "nginx -p \"$PWD/nginx\" -c nginx.conf -s reload",
+    "nginx:test": "nginx -p \"$PWD/nginx\" -c nginx.conf -t"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^18.0.5",
+    "ejs": "^7.0.1",
+    "express": "^5.2.1",
+    "pg": "^8.23.1"
+  }
+}

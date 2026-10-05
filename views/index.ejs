@@ -1,0 +1,36 @@
+<%- include('partials/header') %>
+
+<div class="page-head">
+  <h1>Все посты</h1>
+  <a href="/add" class="btn">+ Новый пост</a>
+</div>
+
+<% if (createdId) { %>
+  <div class="notice notice-success">Пост успешно опубликован и сохранён в базе данных.</div>
+<% } %>
+
+<% if (posts.length === 0) { %>
+  <div class="empty">Постов пока нет. <a href="/add">Напишите первый!</a></div>
+<% } else { %>
+  <div class="post-list">
+    <% posts.forEach((post) => { %>
+      <article class="card post-card <%= post.id === createdId ? 'is-new' : '' %>">
+        <div class="post-card-top">
+          <span class="badge"><%= post.category %></span>
+          <%- include('partials/stars', { value: post.avg_rating, count: post.comments_count }) %>
+        </div>
+        <h2 class="post-title"><a href="/item/<%= post.id %>"><%= post.title %></a></h2>
+        <p class="post-excerpt"><%= post.content.length > 180 ? post.content.slice(0, 180) + '…' : post.content %></p>
+        <div class="meta">
+          <span>✍ <%= post.author %></span>
+          <span>⏱ <%= post.read_time %> мин</span>
+          <span>👁 <%= post.views %></span>
+          <span>💬 <%= post.comments_count %></span>
+          <span class="meta-time" title="Время создания (уникально для каждой записи)">🕒 <%= formatDate(post.created_at) %></span>
+        </div>
+      </article>
+    <% }) %>
+  </div>
+<% } %>
+
+<%- include('partials/footer') %>

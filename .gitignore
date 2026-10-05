@@ -1,0 +1,9 @@
+node_modules/
+.env
+.DS_Store
+nginx/logs/*
+!nginx/logs/.gitkeep
+nginx/temp/
+# остатки других веток (lab21–lab24), не относятся к pz21
+blog-client/
+postman/
