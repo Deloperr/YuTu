@@ -2,13 +2,9 @@
 
 <div class="card narrow">
   <h1>Вход</h1>
-  <p>Добавлять посты может только авторизованный пользователь.</p>
-  <p class="muted">
-    Авторизация имитируется: middleware проверяет параметр <code>?auth=1</code>.
-    Кнопка ниже передаёт его серверу, а тот запоминает вход в cookie.
-  </p>
-  <p><a class="btn" href="/login?auth=1&amp;next=<%= encodeURIComponent(next) %>">Войти как автор блога</a></p>
-  <p><a href="/">Продолжить как гость</a></p>
+  <p class="muted">Войдите, чтобы публиковать собственные посты.</p>
+  <p><a class="btn" href="/login?auth=1&amp;next=<%= encodeURIComponent(next) %>">Войти</a></p>
+  <p><a href="/">Продолжить без входа</a></p>
 </div>
 
 <%- include('partials/footer') %>

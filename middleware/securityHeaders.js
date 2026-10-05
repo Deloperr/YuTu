@@ -4,7 +4,7 @@ function securityHeaders(req, res, next) {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'same-origin',
-    'X-App-Name': 'Blog-PZ21',
+    'X-App-Name': 'BlogPlatform',
   });
   next();
 }

@@ -46,9 +46,6 @@ main.container { flex: 1; padding-top: 28px; padding-bottom: 40px; }
 .nav { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; flex: 1; }
 .nav a { color: var(--muted); padding: 6px 10px; border-radius: 6px; font-size: .95rem; }
 .nav a:hover, .nav a.active { color: var(--accent); background: var(--accent-soft); text-decoration: none; }
-.nav-sep { width: 1px; height: 20px; background: var(--border); margin: 0 6px; }
-.nav a.nav-demo { font-size: .85rem; }
-.nav a.nav-demo:hover { color: var(--danger); background: var(--danger-soft); }
 .user-box { display: flex; align-items: center; gap: 10px; }
 .user-name { color: var(--muted); font-size: .95rem; }
 .user-name.is-auth { color: var(--success); font-weight: 600; }
@@ -59,6 +56,7 @@ main.container { flex: 1; padding-top: 28px; padding-bottom: 40px; }
 .footer-nav { display: flex; gap: 18px; flex-wrap: wrap; }
 .footer-nav a { color: var(--muted); }
 .footer-nav a:hover { color: var(--accent); }
+.footer-service { flex-direction: column; gap: 4px; font-size: .85rem; }
 .footer-copy { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted); font-size: .8rem; }
 
 /* ---------- Кнопки ---------- */
@@ -152,7 +150,6 @@ main.container { flex: 1; padding-top: 28px; padding-bottom: 40px; }
 
 @media (max-width: 720px) {
   .form-row, .comments .form-row { grid-template-columns: 1fr; }
-  .nav-sep { display: none; }
   h1 { font-size: 1.5rem; }
   .error-code { font-size: 4.5rem; }
 }

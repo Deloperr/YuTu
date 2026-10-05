@@ -1,7 +1,7 @@
 {
-  "name": "blog-pz21",
+  "name": "blog-platform",
   "version": "1.0.0",
-  "description": "ПЗ №1: блоговая платформа с комментариями и рейтингами (Express + EJS + PostgreSQL + nginx)",
+  "description": "Блоговая платформа с комментариями и рейтингами",
   "main": "server.js",
   "private": true,
   "scripts": {

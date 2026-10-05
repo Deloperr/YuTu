@@ -1,4 +1,4 @@
-// Инициализация БД: создаёт базу (если её нет), таблицы и тестовые данные.
+// Инициализация БД: создаёт базу (если её нет), таблицы и начальные данные.
 // Запуск: npm run db:init        — создать, если нет
 //         npm run db:reset       — пересоздать таблицы с нуля
 require('dotenv').config({ quiet: true });
@@ -41,7 +41,7 @@ async function main() {
     const { rows } = await client.query('SELECT COUNT(*)::int AS n FROM posts');
     if (rows[0].n === 0) {
       await client.query(fs.readFileSync(path.join(__dirname, '../db/seed.sql'), 'utf8'));
-      console.log('Тестовые данные добавлены');
+      console.log('Начальные данные добавлены');
     }
   } finally {
     await client.end();

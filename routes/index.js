@@ -2,7 +2,7 @@
 const express = require('express');
 const posts = require('../controllers/postController');
 const auth = require('../controllers/authController');
-const demo = require('../controllers/demoController');
+const errors = require('../controllers/errorController');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -19,7 +19,7 @@ router.post('/add', requireAuth, posts.create);
 router.get('/login', auth.login);
 router.get('/logout', auth.logout);
 
-router.get('/demo/500', demo.syncError);
-router.get('/demo/500-async', demo.asyncError);
+router.get('/error/500', errors.syncError);
+router.get('/error/500-db', errors.dbError);
 
 module.exports = router;

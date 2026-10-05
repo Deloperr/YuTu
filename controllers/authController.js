@@ -1,4 +1,4 @@
-// Имитация входа/выхода: cookie auth=1 вместо настоящей сессии.
+// Вход и выход: состояние входа хранится в cookie auth=1.
 const { AUTH_COOKIE } = require('../middleware/auth');
 
 // Разрешаем возврат только на локальный путь (защита от open redirect: //evil.com).

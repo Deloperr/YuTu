@@ -14,10 +14,6 @@
       <% const path = typeof currentPath !== 'undefined' ? currentPath : ''; %>
       <a href="/" class="<%= path === '/' ? 'active' : '' %>">Все посты</a>
       <a href="/add" class="<%= path === '/add' ? 'active' : '' %>">Новый пост</a>
-      <span class="nav-sep"></span>
-      <a href="/demo/500" class="nav-demo" title="Демонстрация страницы ошибки 500">Демо 500</a>
-      <a href="/demo/500-async" class="nav-demo" title="Ошибка в асинхронном запросе к БД">Демо 500 (БД)</a>
-      <a href="/no-such-page" class="nav-demo" title="Демонстрация страницы 404">Демо 404</a>
     </nav>
     <div class="user-box">
       <span class="user-name <%= user.isAuthenticated ? 'is-auth' : '' %>">👤 <%= user.name %></span>

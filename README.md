@@ -1,6 +1,6 @@
-# ПЗ №1. Middleware и шаблонизаторы — блоговая платформа
+# БлогПлатформа
 
-Тема (вариант 89): **«Создание блоговой платформы с системой комментариев и рейтингов»**.
+Блоговая платформа с системой комментариев и рейтингов.
 
 Express 5 + EJS + PostgreSQL, перед приложением стоит nginx (reverse proxy).
 
@@ -10,7 +10,7 @@ Express 5 + EJS + PostgreSQL, перед приложением стоит nginx
 - Детальная страница поста с комментариями и оценками 1–5 (`GET /item/:id`, `POST /item/:id/comments`)
 - Форма добавления поста — только для «авторизованного» пользователя (`GET /add`, `POST /add`)
 - У каждой записи выводится время создания с точностью до секунд, поэтому одинаковые по тексту записи различимы
-- Страницы ошибок 404, 400 и 500; в шапке есть ссылки для их демонстрации
+- Страницы ошибок 404, 400 и 500; ссылки на них — в подвале сайта (`/error/500`, `/error/500-db`)
 - Данные хранятся в PostgreSQL
 
 ## Middleware
@@ -20,7 +20,7 @@ Express 5 + EJS + PostgreSQL, перед приложением стоит nginx
 | `middleware/logger.js` | метод, URL, время, IP; после ответа — статус и длительность |
 | `middleware/securityHeaders.js` | общие заголовки ответа |
 | `middleware/locals.js` | helper-функции для шаблонов (`formatDate`, `plural`) |
-| `middleware/auth.js` | `identifyUser` — имитация авторизации по `?auth=1` (запоминается в cookie); `requireAuth` — редирект на `/login` |
+| `middleware/auth.js` | `identifyUser` — авторизация по `?auth=1` (запоминается в cookie); `requireAuth` — редирект на `/login` |
 | `middleware/errorHandlers.js` | `notFound` (404) и `errorHandler` (4 параметра: 500/400, логирование, запасная HTML-страница) |
 
 ## Проверки формы (сервер)
@@ -49,7 +49,7 @@ Express 5 + EJS + PostgreSQL, перед приложением стоит nginx
 ```bash
 npm install
 cp .env.example .env      # при необходимости поправить доступ к PostgreSQL
-npm run db:init           # создаст БД blog_pz21, таблицы и тестовые данные
+npm run db:init           # создаст БД blog_platform, таблицы и начальные данные
 npm start                 # Express на http://localhost:3000
 npm run nginx:start       # nginx на http://localhost:8088 → проксирует на :3000
 ```

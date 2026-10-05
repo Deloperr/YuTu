@@ -30,7 +30,7 @@ app.use(securityHeaders);                            // 2. общие загол
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h' })); // 3. статика
 app.use(locals);                                     // 4. helper-функции для шаблонов
 app.use(cookieParser());                             // 5. cookie
-app.use(identifyUser);                               // 6. определение пользователя (имитация)
+app.use(identifyUser);                               // 6. определение пользователя
 // 7. данные форм; лимиты защищают от слишком больших запросов (ошибка 413 → страница 400)
 app.use(express.urlencoded({ extended: false, limit: '20kb', parameterLimit: 20 }));
 
