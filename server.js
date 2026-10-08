@@ -40,7 +40,11 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Запуск
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, (err) => {
+  if (err) {
+    console.error(`Не удалось запустить сервер на порту ${PORT}: ${err.message}`);
+    process.exit(1);
+  }
   console.log(`Сервер запущен: http://localhost:${PORT} (через nginx: http://localhost:8088)`);
 });
 
