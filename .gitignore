@@ -6,3 +6,4 @@ nginx/logs/*
 nginx/temp/
 blog-client/
 postman/
+report/
