@@ -1,10 +1,23 @@
 // Посты и комментарии
 const Post = require('../models/postModel');
 const Comment = require('../models/commentModel');
-const { validatePost, postSchema, CATEGORIES } = require('../validators/postValidator');
-const { validateComment, commentSchema } = require('../validators/commentValidator');
+const {
+  validatePost,
+  postSchema,
+  CATEGORIES,
+} = require('../validators/postValidator');
+const {
+  validateComment,
+  commentSchema,
+} = require('../validators/commentValidator');
 
-const EMPTY_POST = { title: '', author: '', category: '', read_time: '', content: '' };
+const EMPTY_POST = {
+  title: '',
+  author: '',
+  category: '',
+  read_time: '',
+  content: '',
+};
 const EMPTY_COMMENT = { author: '', text: '', rating: '' };
 
 // Разбор ID из адреса
@@ -25,7 +38,11 @@ async function list(req, res) {
 }
 
 // Вывод страницы поста
-async function renderItem(res, post, { status = 200, values = EMPTY_COMMENT, errors = {}, added = false } = {}) {
+async function renderItem(
+  res,
+  post,
+  { status = 200, values = EMPTY_COMMENT, errors = {}, added = false } = {},
+) {
   const comments = await Comment.findByPostId(post.id);
   res.status(status).render('item', {
     pageTitle: post.title,
@@ -65,8 +82,9 @@ function showAddForm(req, res) {
 async function create(req, res) {
   const { values, errors, isValid } = validatePost(req.body);
 
-  if (isValid && await Post.existsRecentDuplicate(values)) {
-    errors.title = 'Пост с таким заголовком от этого автора уже опубликован минуту назад';
+  if (isValid && (await Post.existsRecentDuplicate(values))) {
+    errors.title =
+      'Пост с таким заголовком от этого автора уже опубликован минуту назад';
   }
 
   if (Object.keys(errors).length > 0) {

@@ -25,23 +25,29 @@ function normalizeText(raw, multiline) {
 // Текст
 function validateText(raw, rule) {
   if (raw.length > rule.max * 4) return { error: `Не более ${rule.max} символов` };
-  if (CONTROL_CHARS.test(raw)) return { error: 'Содержит недопустимые управляющие символы' };
+  if (CONTROL_CHARS.test(raw))
+    return { error: 'Содержит недопустимые управляющие символы' };
 
   const value = normalizeText(raw, rule.multiline);
   if (value === '') {
     return {
       value,
-      error: raw.length > 0
-        ? 'Поле не может состоять только из пробелов'
-        : 'Поле обязательно для заполнения',
+      error:
+        raw.length > 0
+          ? 'Поле не может состоять только из пробелов'
+          : 'Поле обязательно для заполнения',
     };
   }
 
   const len = charLength(value);
-  if (len < rule.min) return { value, error: `Минимум ${rule.min} симв. (сейчас ${len})` };
-  if (len > rule.max) return { value, error: `Максимум ${rule.max} симв. (сейчас ${len})` };
-  if (!HAS_LETTER_OR_DIGIT.test(value)) return { value, error: 'Должно содержать буквы или цифры' };
-  if (rule.pattern && !rule.pattern.test(value)) return { value, error: rule.patternMessage };
+  if (len < rule.min)
+    return { value, error: `Минимум ${rule.min} симв. (сейчас ${len})` };
+  if (len > rule.max)
+    return { value, error: `Максимум ${rule.max} симв. (сейчас ${len})` };
+  if (!HAS_LETTER_OR_DIGIT.test(value))
+    return { value, error: 'Должно содержать буквы или цифры' };
+  if (rule.pattern && !rule.pattern.test(value))
+    return { value, error: rule.patternMessage };
   return { value };
 }
 
@@ -49,14 +55,25 @@ function validateText(raw, rule) {
 function validateInteger(raw, rule) {
   const str = raw.trim();
   if (str === '') {
-    return { value: str, error: raw.length > 0 ? 'Поле не может состоять только из пробелов' : 'Поле обязательно для заполнения' };
+    return {
+      value: str,
+      error:
+        raw.length > 0
+          ? 'Поле не может состоять только из пробелов'
+          : 'Поле обязательно для заполнения',
+    };
   }
-  if (/^-\s*\d/.test(str)) return { value: str, error: 'Значение не может быть отрицательным' };
-  if (!/^\d{1,6}$/.test(str)) return { value: str, error: 'Введите целое неотрицательное число' };
+  if (/^-\s*\d/.test(str))
+    return { value: str, error: 'Значение не может быть отрицательным' };
+  if (!/^\d{1,6}$/.test(str))
+    return { value: str, error: 'Введите целое неотрицательное число' };
 
   const num = Number(str);
   if (num < rule.min || num > rule.max) {
-    return { value: str, error: `Допустимый диапазон: от ${rule.min} до ${rule.max}` };
+    return {
+      value: str,
+      error: `Допустимый диапазон: от ${rule.min} до ${rule.max}`,
+    };
   }
   return { value: num };
 }
@@ -65,11 +82,16 @@ function validateInteger(raw, rule) {
 function validateChoice(raw, rule) {
   const value = raw.trim();
   if (value === '') return { value, error: 'Выберите значение из списка' };
-  if (!rule.options.includes(value)) return { value: '', error: 'Недопустимое значение' };
+  if (!rule.options.includes(value))
+    return { value: '', error: 'Недопустимое значение' };
   return { value };
 }
 
-const validators = { text: validateText, integer: validateInteger, choice: validateChoice };
+const validators = {
+  text: validateText,
+  integer: validateInteger,
+  choice: validateChoice,
+};
 
 // Проверка всей формы
 function validate(schema, body = {}) {

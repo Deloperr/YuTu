@@ -7,9 +7,10 @@ function identifyUser(req, res, next) {
   const byQuery = req.query.auth === '1';
   const byCookie = req.cookies?.[AUTH_COOKIE] === '1';
 
-  req.user = byQuery || byCookie
-    ? { name: 'Автор блога', isAuthenticated: true }
-    : { name: 'Гость', isAuthenticated: false };
+  req.user =
+    byQuery || byCookie
+      ? { name: 'Автор блога', isAuthenticated: true }
+      : { name: 'Гость', isAuthenticated: false };
 
   res.locals.user = req.user;
   next();

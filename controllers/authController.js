@@ -11,7 +11,11 @@ function login(req, res) {
   const next = safeNext(req.query.next);
 
   if (req.query.auth === '1') {
-    res.cookie(AUTH_COOKIE, '1', { httpOnly: true, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000 });
+    res.cookie(AUTH_COOKIE, '1', {
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
     return res.redirect(next);
   }
 

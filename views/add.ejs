@@ -7,16 +7,21 @@
 <form class="card form" method="post" action="/add" novalidate>
   <% if (Object.keys(errors).length) { %>
     <div class="notice notice-error">
-      Пост не сохранён. Исправьте <%= Object.keys(errors).length %>
-      <%= plural(Object.keys(errors).length, ['ошибку', 'ошибки', 'ошибок']) %> в отмеченных полях.
+      <% const count = Object.keys(errors).length; %>
+      Пост не сохранён. Исправьте <%= count %>
+      <%= plural(count, ['ошибку', 'ошибки', 'ошибок']) %> в отмеченных полях.
     </div>
   <% } %>
 
   <div class="field <%= errors.title ? 'has-error' : '' %>">
     <label for="title">Заголовок <span class="req">*</span></label>
     <input id="title" name="title" type="text" value="<%= values.title %>"
-           maxlength="<%= schema.title.max %>" data-counter placeholder="О чём ваш пост?">
-    <div class="hint"><%= schema.title.min %>–<%= schema.title.max %> символов, не только пробелы и знаки</div>
+           maxlength="<%= schema.title.max %>" data-counter
+           placeholder="О чём ваш пост?">
+    <div class="hint">
+      <%= schema.title.min %>–<%= schema.title.max %> символов,
+      не только пробелы и знаки
+    </div>
     <%- include('partials/field-error', { name: 'title' }) %>
   </div>
 
@@ -24,8 +29,12 @@
     <div class="field <%= errors.author ? 'has-error' : '' %>">
       <label for="author">Автор <span class="req">*</span></label>
       <input id="author" name="author" type="text" value="<%= values.author %>"
-             maxlength="<%= schema.author.max %>" data-counter placeholder="Имя Фамилия">
-      <div class="hint"><%= schema.author.min %>–<%= schema.author.max %> символов: буквы, пробел, дефис</div>
+             maxlength="<%= schema.author.max %>" data-counter
+             placeholder="Имя Фамилия">
+      <div class="hint">
+        <%= schema.author.min %>–<%= schema.author.max %> символов:
+        буквы, пробел, дефис
+      </div>
       <%- include('partials/field-error', { name: 'author' }) %>
     </div>
 
@@ -34,7 +43,8 @@
       <select id="category" name="category">
         <option value="">— выберите —</option>
         <% categories.forEach((cat) => { %>
-          <option value="<%= cat %>" <%= values.category === cat ? 'selected' : '' %>><%= cat %></option>
+          <% const selected = values.category === cat ? 'selected' : ''; %>
+          <option value="<%= cat %>" <%= selected %>><%= cat %></option>
         <% }) %>
       </select>
       <div class="hint">значение из списка</div>
@@ -44,18 +54,24 @@
     <div class="field field-narrow <%= errors.read_time ? 'has-error' : '' %>">
       <label for="read_time">Время чтения, мин <span class="req">*</span></label>
       <input id="read_time" name="read_time" type="number" inputmode="numeric"
-             min="<%= schema.read_time.min %>" max="<%= schema.read_time.max %>" step="1"
+             min="<%= schema.read_time.min %>"
+             max="<%= schema.read_time.max %>" step="1"
              value="<%= values.read_time %>" placeholder="5">
-      <div class="hint">целое, от <%= schema.read_time.min %> до <%= schema.read_time.max %></div>
+      <div class="hint">
+        целое, от <%= schema.read_time.min %> до <%= schema.read_time.max %>
+      </div>
       <%- include('partials/field-error', { name: 'read_time' }) %>
     </div>
   </div>
 
   <div class="field <%= errors.content ? 'has-error' : '' %>">
     <label for="content">Текст поста <span class="req">*</span></label>
-    <textarea id="content" name="content" rows="10" maxlength="<%= schema.content.max %>" data-counter
+    <textarea id="content" name="content" rows="10"
+              maxlength="<%= schema.content.max %>" data-counter
               placeholder="Текст поста..."><%= values.content %></textarea>
-    <div class="hint"><%= schema.content.min %>–<%= schema.content.max %> символов</div>
+    <div class="hint">
+      <%= schema.content.min %>–<%= schema.content.max %> символов
+    </div>
     <%- include('partials/field-error', { name: 'content' }) %>
   </div>
 

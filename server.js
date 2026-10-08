@@ -45,7 +45,9 @@ const server = app.listen(PORT, (err) => {
     console.error(`Не удалось запустить сервер на порту ${PORT}: ${err.message}`);
     process.exit(1);
   }
-  console.log(`Сервер запущен: http://localhost:${PORT} (через nginx: http://localhost:8088)`);
+  console.log(
+    `Сервер запущен: http://localhost:${PORT} (через nginx: http://localhost:8088)`,
+  );
 });
 
 // Остановка

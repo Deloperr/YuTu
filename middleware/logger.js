@@ -8,7 +8,10 @@ function logger(req, res, next) {
   // Длительность: (время окончания − время начала) / 10^6, мс
   res.on('finish', () => {
     const ms = Number(process.hrtime.bigint() - start) / 1e6;
-    console.log(`[${time}] ← ${req.method} ${req.originalUrl} ${res.statusCode} — ${ms.toFixed(1)} мс`);
+    const { method, originalUrl } = req;
+    console.log(
+      `[${time}] ← ${method} ${originalUrl} ${res.statusCode} — ${ms.toFixed(1)} мс`,
+    );
   });
 
   next();
