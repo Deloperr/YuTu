@@ -39,7 +39,8 @@ h2 { font-size: 1.3rem; }
 main.container { flex: 1; padding-top: 28px; padding-bottom: 40px; }
 
 /* Шапка */
-.site-header { background: var(--surface); border-bottom: 1px solid var(--border); }
+/* шапка закреплена при прокрутке */
+.site-header { position: sticky; top: 0; z-index: 10; background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: 0 1px 4px rgba(20, 24, 40, .06); }
 .header-inner { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; padding-top: 12px; padding-bottom: 12px; }
 .logo { font-weight: 700; font-size: 1.15rem; color: var(--text); }
 .logo:hover { text-decoration: none; }
@@ -153,3 +154,13 @@ main.container { flex: 1; padding-top: 28px; padding-bottom: 40px; }
   h1 { font-size: 1.5rem; }
   .error-code { font-size: 4.5rem; }
 }
+
+/* Журнал запросов */
+.table-wrap { padding: 0; overflow-x: auto; }
+.log-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.log-table th, .log-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+.log-table th { background: #f8f9fc; color: var(--muted); font-weight: 600; }
+.log-table td.url { overflow-wrap: anywhere; max-width: 260px; }
+.log-table td.nowrap { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.log-table tr.warn td { background: #fff8e6; }
+.log-table tr.err td { background: var(--danger-soft); }

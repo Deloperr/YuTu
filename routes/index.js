@@ -3,6 +3,7 @@ const express = require('express');
 const posts = require('../controllers/postController');
 const auth = require('../controllers/authController');
 const errors = require('../controllers/errorController');
+const logs = require('../controllers/logController');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -15,6 +16,9 @@ router.post('/item/:id/comments', posts.addComment);
 // Добавление поста
 router.get('/add', requireAuth, posts.showAddForm);
 router.post('/add', requireAuth, posts.create);
+
+// Журнал запросов
+router.get('/logs', requireAuth, logs.list);
 
 // Вход
 router.get('/login', auth.login);

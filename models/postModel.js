@@ -1,5 +1,6 @@
 // Посты
 const { pool } = require('../config/db');
+const limits = require('../config/limits.json');
 
 // Средний рейтинг = ROUND(AVG(rating), 1), число комментариев = COUNT(comments)
 const SELECT_WITH_STATS = `
@@ -28,11 +29,12 @@ async function incrementViews(id) {
   await pool.query('UPDATE posts SET views = views + 1 WHERE id = $1', [id]);
 }
 
-// Поиск повторного поста за последнюю минуту
+// Поиск повторного поста за последние N минут (config/limits.json)
 async function existsRecentDuplicate({ title, author }) {
   const { rows } = await pool.query(
     `SELECT title, author FROM posts
-     WHERE created_at > now() - interval '1 minute'`,
+     WHERE created_at > now() - make_interval(mins => $1)`,
+    [limits.duplicateWindowMinutes],
   );
   const key = (s) => s.toLocaleLowerCase('ru');
   return rows.some(

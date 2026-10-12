@@ -1,0 +1,21 @@
+{
+  "post": {
+    "title": { "min": 5, "max": 120 },
+    "author": { "min": 2, "max": 50 },
+    "read_time": { "min": 1, "max": 300 },
+    "content": { "min": 20, "max": 5000 }
+  },
+  "comment": {
+    "author": { "min": 2, "max": 50 },
+    "text": { "min": 3, "max": 1000 },
+    "rating": { "min": 1, "max": 5 }
+  },
+  "categories": ["Технологии", "Наука", "Путешествия", "Личное", "Обучение", "Другое"],
+  "name": {
+    "pattern": "^\\p{L}[\\p{L} .'’-]*$",
+    "message": "Только буквы, пробел, дефис, апостроф или точка; первая — буква"
+  },
+  "request": { "bodyLimit": "20kb", "parameterLimit": 20 },
+  "duplicateWindowMinutes": 1,
+  "logsPageSize": 50
+}

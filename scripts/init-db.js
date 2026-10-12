@@ -35,7 +35,7 @@ async function main() {
   await client.connect();
   try {
     if (reset) {
-      await client.query('DROP TABLE IF EXISTS comments, posts CASCADE');
+      await client.query('DROP TABLE IF EXISTS request_logs, comments, posts CASCADE');
       console.log('Таблицы удалены');
     }
     await client.query(

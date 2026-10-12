@@ -84,7 +84,7 @@ async function create(req, res) {
 
   if (isValid && (await Post.existsRecentDuplicate(values))) {
     errors.title =
-      'Пост с таким заголовком от этого автора уже опубликован минуту назад';
+      'Пост с таким заголовком от этого автора уже опубликован недавно';
   }
 
   if (Object.keys(errors).length > 0) {

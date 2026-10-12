@@ -1,40 +1,27 @@
 // Проверка поста
 const { validate } = require('./rules');
+const limits = require('../config/limits.json');
 
-const CATEGORIES = [
-  'Технологии',
-  'Наука',
-  'Путешествия',
-  'Личное',
-  'Обучение',
-  'Другое',
-];
+const CATEGORIES = limits.categories;
 
 // Формат имени
-const NAME_PATTERN = /^\p{L}[\p{L} .'’-]*$/u;
-const NAME_MESSAGE =
-  'Только буквы, пробел, дефис, апостроф или точка; первая — буква';
+const NAME_PATTERN = new RegExp(limits.name.pattern, 'u');
+const NAME_MESSAGE = limits.name.message;
 
-// Правила полей
+// Правила полей (ограничения – из config/limits.json)
+const { title, author, read_time, content } = limits.post;
 const postSchema = {
-  title: { type: 'text', label: 'Заголовок', min: 5, max: 120 },
+  title: { type: 'text', label: 'Заголовок', ...title },
   author: {
     type: 'text',
     label: 'Автор',
-    min: 2,
-    max: 50,
+    ...author,
     pattern: NAME_PATTERN,
     patternMessage: NAME_MESSAGE,
   },
   category: { type: 'choice', label: 'Категория', options: CATEGORIES },
-  read_time: { type: 'integer', label: 'Время чтения, мин', min: 1, max: 300 },
-  content: {
-    type: 'text',
-    label: 'Текст поста',
-    min: 20,
-    max: 5000,
-    multiline: true,
-  },
+  read_time: { type: 'integer', label: 'Время чтения, мин', ...read_time },
+  content: { type: 'text', label: 'Текст поста', ...content, multiline: true },
 };
 
 const validatePost = (body) => validate(postSchema, body);

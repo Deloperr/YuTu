@@ -22,3 +22,15 @@ CREATE TABLE IF NOT EXISTS comments (
 );
 
 CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
+
+-- Журнал запросов
+CREATE TABLE IF NOT EXISTS request_logs (
+  id           SERIAL PRIMARY KEY,
+  created_at   TIMESTAMPTZ   NOT NULL DEFAULT clock_timestamp(),
+  method       VARCHAR(10)   NOT NULL,
+  url          VARCHAR(2048) NOT NULL,
+  status       SMALLINT      NOT NULL,
+  duration_ms  NUMERIC(10,1) NOT NULL CHECK (duration_ms >= 0),
+  ip           VARCHAR(64),
+  error        TEXT
+);

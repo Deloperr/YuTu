@@ -45,6 +45,9 @@ function errorHandler(err, req, res, next) {
 
   if (res.headersSent) return next(err);
 
+  // Текст ошибки для журнала запросов
+  res.locals.logError = err.message || err.code;
+
   if (status === 404) return notFound(req, res);
 
   // Журнал

@@ -1,0 +1,38 @@
+<%- include('partials/header') %>
+
+<div class="page-head">
+  <h1>Журнал запросов</h1>
+  <span class="muted">последние <%= logs.length %> записей из таблицы request_logs</span>
+</div>
+
+<% if (logs.length === 0) { %>
+  <div class="empty">Записей пока нет.</div>
+<% } else { %>
+  <div class="card table-wrap">
+    <table class="log-table">
+      <thead>
+        <tr>
+          <th>№</th><th>Время</th><th>Метод</th><th>URL</th>
+          <th>Код</th><th>Длит., мс</th><th>IP</th><th>Ошибка</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% logs.forEach((log) => { %>
+          <% const level = log.status >= 500 ? 'err' : log.status >= 400 ? 'warn' : ''; %>
+          <tr class="<%= level %>">
+            <td><%= log.id %></td>
+            <td class="nowrap"><%= formatDate(log.created_at) %></td>
+            <td><%= log.method %></td>
+            <td class="url"><%= log.url %></td>
+            <td><%= log.status %></td>
+            <td><%= log.duration_ms %></td>
+            <td><%= log.ip %></td>
+            <td class="url"><%= log.error || '' %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<%- include('partials/footer') %>

@@ -14,6 +14,9 @@
       <% const path = typeof currentPath !== 'undefined' ? currentPath : ''; %>
       <a href="/" class="<%= path === '/' ? 'active' : '' %>">Все посты</a>
       <a href="/add" class="<%= path === '/add' ? 'active' : '' %>">Новый пост</a>
+      <% if (user.isAuthenticated) { %>
+        <a href="/logs" class="<%= path === '/logs' ? 'active' : '' %>">Журнал</a>
+      <% } %>
     </nav>
     <div class="user-box">
       <span class="user-name <%= user.isAuthenticated ? 'is-auth' : '' %>">👤 <%= user.name %></span>

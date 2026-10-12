@@ -4,13 +4,14 @@ const path = require('path');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 
-const logger = require('./middleware/logger');
+const { logger, initRequestLog } = require('./middleware/logger');
 const securityHeaders = require('./middleware/securityHeaders');
 const locals = require('./middleware/locals');
 const { identifyUser } = require('./middleware/auth');
 const { notFound, errorHandler } = require('./middleware/errorHandlers');
 const routes = require('./routes');
 const { pool } = require('./config/db');
+const limits = require('./config/limits.json');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -30,7 +31,13 @@ app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h' }));
 app.use(locals);
 app.use(cookieParser());
 app.use(identifyUser);
-app.use(express.urlencoded({ extended: false, limit: '20kb', parameterLimit: 20 }));
+app.use(
+  express.urlencoded({
+    extended: false,
+    limit: limits.request.bodyLimit,
+    parameterLimit: limits.request.parameterLimit,
+  }),
+);
 
 // Маршруты
 app.use(routes);
@@ -40,6 +47,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Запуск
+initRequestLog();
 const server = app.listen(PORT, (err) => {
   if (err) {
     console.error(`Не удалось запустить сервер на порту ${PORT}: ${err.message}`);
