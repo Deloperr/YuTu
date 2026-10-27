@@ -25,13 +25,36 @@ function App() {
   };
 
   return (
-    <div className="app">
-      <header className="header">
-        <h1>Блог — управление постами</h1>
-        <LoginForm user={user} onLogin={setUser} onLogout={logout} />
+    <>
+      <header className="topbar">
+        <div className="topbar-inner">
+          <a className="logo" href="/">
+            Yu<span>Tu</span>
+          </a>
+          <LoginForm user={user} onLogin={setUser} onLogout={logout} />
+        </div>
       </header>
-      <PostList user={user} />
-    </div>
+
+      <main className="app">
+        <section className="hero">
+          <p className="hero-kicker">Блоговая платформа</p>
+          <h1>Заметки, статьи и обсуждения</h1>
+          <p className="hero-text">
+            Делитесь мыслями, читайте других авторов и оценивайте публикации.
+          </p>
+        </section>
+        <PostList user={user} />
+      </main>
+
+      <footer className="footer">
+        <div className="footer-inner">
+          <span className="logo small">
+            Yu<span>Tu</span>
+          </span>
+          <span>© 2026 · Блог с комментариями и рейтингами</span>
+        </div>
+      </footer>
+    </>
   );
 }
 

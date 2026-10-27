@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { fetchPosts, addPost, updatePost, deletePost, axios } from '../api';
 import useDebounce from '../hooks/useDebounce';
+import Avatar from './Avatar';
 
 const PAGE_SIZE = 5;
 
@@ -107,6 +108,7 @@ function PostList({ user }) {
       author: fields.author || user.email,
       rating: 0,
       comments: [],
+      createdAt: new Date().toISOString(),
       pending: true,
     };
     setPosts((prev) => [tempPost, ...prev]);
@@ -195,8 +197,12 @@ function PostList({ user }) {
     setAuthor(post.author);
   };
 
+  // Enter в однострочных полях, Ctrl/Cmd+Enter в тексте записи
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') handleSubmit();
+    if (e.key !== 'Enter') return;
+    if (e.target.tagName === 'TEXTAREA' && !(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    handleSubmit();
   };
 
   const pendingCount = posts.filter((p) => p.pending).length;
@@ -213,9 +219,10 @@ function PostList({ user }) {
     if (error) {
       return (
         <div className="error-box">
-          <p>Ошибка загрузки: {error}</p>
+          <h3>Не удалось загрузить ленту</h3>
+          <p>{error}</p>
           <button
-            className="btn-primary"
+            className="btn btn-primary"
             onClick={() => setReloadKey((k) => k + 1)}
           >
             Повторить
@@ -224,50 +231,68 @@ function PostList({ user }) {
       );
     }
     if (posts.length === 0) {
-      return <div className="empty">Постов не найдено</div>;
+      return (
+        <div className="empty">
+          <h3>Постов не найдено</h3>
+          <p>Попробуйте изменить запрос или напишите первую запись.</p>
+        </div>
+      );
     }
     return (
       <>
-        <ul className="post-list">
+        <div className="post-list">
           {posts.map((post) => (
-            <li
+            <article
               key={post.id}
               className={`post-card ${post.pending ? 'pending' : ''}`}
             >
-              <h3>
-                {post.title}
-                {post.pending && <span className="badge">Сохранение...</span>}
-              </h3>
-              <p>{post.content}</p>
-              <div className="post-meta">
-                Автор: {post.author} | Рейтинг:{' '}
-                {Number(post.rating || 0).toFixed(1)} | Комментариев:{' '}
-                {post.comments ? post.comments.length : 0}
-              </div>
-              {user && (
-                <div className="post-actions">
-                  <button
-                    className="btn-secondary"
-                    onClick={() => startEdit(post)}
-                    disabled={post.pending}
-                  >
-                    Редактировать
-                  </button>
-                  <button
-                    className="btn-danger"
-                    onClick={() => handleDelete(post.id)}
-                    disabled={post.pending}
-                  >
-                    Удалить
-                  </button>
+              <header className="post-head">
+                <Avatar name={post.author} />
+                <div>
+                  <div className="post-author">{post.author}</div>
+                  <time className="post-date">
+                    {formatDate(post.createdAt)}
+                  </time>
                 </div>
-              )}
-            </li>
+                {post.pending && <span className="badge">Сохранение...</span>}
+              </header>
+              <h2 className="post-title">{post.title}</h2>
+              <p className="post-content">{post.content}</p>
+              <footer className="post-footer">
+                <div className="post-stats">
+                  <Stars value={post.rating} />
+                  <span className="comments">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />
+                    </svg>
+                    {post.comments ? post.comments.length : 0}
+                  </span>
+                </div>
+                {user && (
+                  <div className="post-actions">
+                    <button
+                      className="btn btn-text"
+                      onClick={() => startEdit(post)}
+                      disabled={post.pending}
+                    >
+                      Редактировать
+                    </button>
+                    <button
+                      className="btn btn-text danger"
+                      onClick={() => handleDelete(post.id)}
+                      disabled={post.pending}
+                    >
+                      Удалить
+                    </button>
+                  </div>
+                )}
+              </footer>
+            </article>
           ))}
-        </ul>
+        </div>
         {page < pages && (
           <button
-            className="btn-secondary load-more"
+            className="btn btn-ghost load-more"
             onClick={loadMore}
             disabled={loadingMore}
           >
@@ -281,54 +306,82 @@ function PostList({ user }) {
   return (
     <>
       {user ? (
-        <div className="form">
+        <section className={`composer ${editingId ? 'editing' : ''}`}>
+          <div className="composer-head">
+            <Avatar name={user.email} size={36} />
+            <span>{editingId ? 'Редактирование записи' : 'Новая запись'}</span>
+          </div>
           <input
+            className="composer-title"
             placeholder="Заголовок"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <input
-            placeholder="Содержимое"
+          <textarea
+            className="composer-content"
+            placeholder="О чём хотите рассказать?"
+            rows={3}
             value={content}
             onChange={(e) => setContent(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <input
-            placeholder="Автор (по умолчанию email)"
-            value={author}
-            onChange={(e) => setAuthor(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          <button className="btn-primary" onClick={handleSubmit}>
-            {editingId ? 'Сохранить' : 'Добавить'}
-          </button>
-          {editingId && (
-            <button className="btn-secondary" onClick={resetForm}>
-              Отмена
-            </button>
-          )}
-        </div>
+          <div className="composer-bottom">
+            <input
+              className="composer-author"
+              placeholder="Автор (по умолчанию email)"
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+            <div className="composer-buttons">
+              {editingId && (
+                <button className="btn btn-ghost" onClick={resetForm}>
+                  Отмена
+                </button>
+              )}
+              <button className="btn btn-primary" onClick={handleSubmit}>
+                {editingId ? 'Сохранить' : 'Опубликовать'}
+              </button>
+            </div>
+          </div>
+        </section>
       ) : (
-        <p className="hint">Войдите, чтобы добавлять и редактировать посты</p>
+        <p className="hint">Войдите, чтобы публиковать и редактировать записи.</p>
       )}
 
-      <div className="controls">
-        <input
-          placeholder="Поиск по заголовку, тексту или автору..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-          <option value="date">По дате</option>
-          <option value="rating">По рейтингу</option>
-        </select>
+      <div className="toolbar">
+        <div className="search">
+          <svg className="search-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M20 20l-3.5-3.5" />
+          </svg>
+          <input
+            placeholder="Поиск по заголовку, тексту или автору"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="tabs">
+          <button
+            className={sortBy === 'date' ? 'active' : ''}
+            onClick={() => setSortBy('date')}
+          >
+            Новые
+          </button>
+          <button
+            className={sortBy === 'rating' ? 'active' : ''}
+            onClick={() => setSortBy('rating')}
+          >
+            Лучшие
+          </button>
+        </div>
       </div>
 
       <p className="stats">
-        Найдено постов: {total} | Показано: {posts.length}
-        {search !== debouncedSearch && ' | Ожидание ввода...'}
-        {pendingCount > 0 && ` | Отправка на сервер: ${pendingCount}`}
+        Найдено постов: {total} · Показано: {posts.length}
+        {search !== debouncedSearch && ' · Ожидание ввода...'}
+        {pendingCount > 0 && ` · Отправка на сервер: ${pendingCount}`}
       </p>
 
       {renderList()}
@@ -337,5 +390,25 @@ function PostList({ user }) {
     </>
   );
 }
+
+// Рейтинг звёздами: заполнено округлённое значение из пяти
+function Stars({ value }) {
+  const rating = Number(value || 0);
+  const full = Math.round(rating);
+  return (
+    <span className="stars" title={`Рейтинг ${rating.toFixed(1)}`}>
+      {'★'.repeat(full)}
+      <span className="stars-empty">{'★'.repeat(5 - full)}</span>
+      <span className="stars-value">{rating.toFixed(1)}</span>
+    </span>
+  );
+}
+
+const formatDate = (value) =>
+  new Date(value || Date.now()).toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 
 export default PostList;

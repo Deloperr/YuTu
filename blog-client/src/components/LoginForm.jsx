@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { login, register } from '../api';
+import Avatar from './Avatar';
 
 function LoginForm({ user, onLogin, onLogout }) {
+  const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('user@yutu.local');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -16,6 +18,7 @@ function LoginForm({ user, onLogin, onLogout }) {
       localStorage.setItem('user', JSON.stringify(data.data.user));
       onLogin(data.data.user);
       setPassword('');
+      setOpen(false);
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
     } finally {
@@ -38,11 +41,15 @@ function LoginForm({ user, onLogin, onLogout }) {
 
   if (user) {
     return (
-      <div className="auth auth-logged">
-        <span>
-          {user.email} <span className="role">{user.role}</span>
-        </span>
-        <button className="btn-secondary" onClick={onLogout}>
+      <div className="account">
+        <Avatar name={user.email} size={34} />
+        <div className="account-info">
+          <span className="account-email">{user.email}</span>
+          <span className="account-role">
+            {user.role === 'admin' ? 'администратор' : 'автор'}
+          </span>
+        </div>
+        <button className="btn btn-ghost" onClick={onLogout}>
           Выйти
         </button>
       </div>
@@ -51,26 +58,51 @@ function LoginForm({ user, onLogin, onLogout }) {
 
   return (
     <div className="auth">
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="Пароль"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-      />
-      <button className="btn-primary" onClick={handleLogin} disabled={busy}>
-        {busy ? 'Вход...' : 'Войти'}
+      <button className="btn btn-primary" onClick={() => setOpen(!open)}>
+        Войти
       </button>
-      <button className="btn-secondary" onClick={handleRegister} disabled={busy}>
-        Регистрация
-      </button>
-      {message && <p className={`auth-message ${message.type}`}>{message.text}</p>}
+      {open && (
+        <div className="auth-popover">
+          <h3>Вход в блог</h3>
+          <label>
+            Email
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </label>
+          <label>
+            Пароль
+            <input
+              type="password"
+              value={password}
+              autoFocus
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+            />
+          </label>
+          {message && (
+            <p className={`auth-message ${message.type}`}>{message.text}</p>
+          )}
+          <div className="auth-buttons">
+            <button
+              className="btn btn-primary"
+              onClick={handleLogin}
+              disabled={busy}
+            >
+              {busy ? 'Вход...' : 'Войти'}
+            </button>
+            <button
+              className="btn btn-ghost"
+              onClick={handleRegister}
+              disabled={busy}
+            >
+              Регистрация
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
