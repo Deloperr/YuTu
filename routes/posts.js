@@ -1,196 +1,229 @@
 const express = require('express');
-const { Op } = require('sequelize');
-const { Post, Comment } = require('../models');
+const mongoose = require('mongoose');
+const Post = require('../models/Post');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Проверка обязательных полей поста
-const validatePost = (req, res, next) => {
-  const { title, content } = req.body;
-  if (!title || !title.trim() || !content || !content.trim()) {
-    return res.status(400).json({
-      success: false,
-      error: 'Заголовок и содержимое обязательны'
-    });
+// Проверка формата ObjectId в параметрах маршрута
+const checkId = (...params) => (req, res, next) => {
+  for (const name of params) {
+    if (!mongoose.isValidObjectId(req.params[name])) {
+      return res.status(400).json({ success: false, error: 'Некорректный id' });
+    }
   }
   next();
 };
 
-// GET /posts?search=&sort=date|rating&page=1&limit=10
+const notFound = (res) =>
+  res.status(404).json({ success: false, error: 'Пост не найден' });
+
+// Экранирование спецсимволов для поиска по регулярному выражению
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// GET /posts?search=&tag=&sort=date|rating&page=1&limit=10
 router.get('/', async (req, res) => {
-  try {
-    const search = (req.query.search || '').trim();
-    const sort = req.query.sort === 'rating' ? 'rating' : 'createdAt';
-    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
-    const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const search = (req.query.search || '').trim();
+  const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const sort = req.query.sort === 'rating'
+    ? { rating: -1, createdAt: -1 }
+    : { createdAt: -1 };
 
-    // Поиск по заголовку, содержимому и автору без учёта регистра
-    const where = search
-      ? {
-          [Op.or]: ['title', 'content', 'author'].map((field) => ({
-            [field]: { [Op.iLike]: `%${search}%` }
-          }))
-        }
-      : {};
-
-    const { rows, count } = await Post.findAndCountAll({
-      where,
-      include: [{ model: Comment, as: 'comments', attributes: ['id'] }],
-      order: [[sort, 'DESC NULLS LAST'], ['id', 'DESC']],
-      limit,
-      offset: (page - 1) * limit,
-      distinct: true
-    });
-    res.json({
-      success: true,
-      data: rows,
-      count: rows.length,
-      total: count,
-      page,
-      pages: Math.ceil(count / limit)
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+  const filter = {};
+  if (search) {
+    const re = new RegExp(escapeRegex(search), 'i');
+    filter.$or = [{ title: re }, { content: re }, { author: re }];
   }
+  if (req.query.tag) filter.tags = req.query.tag.toLowerCase();
+
+  // Цепочка методов Query: фильтр, сортировка, пропуск, лимит
+  const [posts, total] = await Promise.all([
+    Post.find(filter)
+      .select('-ratings')
+      .sort(sort)
+      .skip((page - 1) * limit)
+      .limit(limit),
+    Post.countDocuments(filter)
+  ]);
+
+  res.json({
+    success: true,
+    data: posts,
+    count: posts.length,
+    total,
+    page,
+    pages: Math.ceil(total / limit)
+  });
 });
 
+// GET /posts/stats – конвейер агрегации
 router.get('/stats', async (req, res) => {
-  try {
-    const totalPosts = await Post.count();
-    const totalComments = await Comment.count();
-    const avgResult = await Post.findOne({
-      attributes: [[Post.sequelize.fn('AVG', Post.sequelize.col('rating')), 'avg']]
-    });
-    const avgRating = parseFloat(avgResult.dataValues.avg) || 0;
-    const popular = await Post.findAll({
-      order: [['rating', 'DESC']],
-      limit: 3,
-      attributes: ['id', 'title', 'author', 'rating']
-    });
-    res.json({
-      success: true,
-      data: { totalPosts, totalComments, averageRating: avgRating, popularPosts: popular }
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
+  const [totals] = await Post.aggregate([
+    {
+      $group: {
+        _id: null,
+        totalPosts: { $sum: 1 },
+        totalComments: { $sum: { $size: '$comments' } },
+        averageRating: { $avg: '$rating' }
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        totalPosts: 1,
+        totalComments: 1,
+        averageRating: { $round: ['$averageRating', 2] }
+      }
+    }
+  ]);
+
+  const popularTags = await Post.aggregate([
+    { $unwind: '$tags' },
+    { $group: { _id: '$tags', posts: { $sum: 1 } } },
+    { $sort: { posts: -1, _id: 1 } },
+    { $limit: 5 },
+    { $project: { _id: 0, tag: '$_id', posts: 1 } }
+  ]);
+
+  res.json({ success: true, data: { ...totals, popularTags } });
 });
 
-router.get('/:id', async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const post = await Post.findByPk(id, {
-      include: [{ model: Comment, as: 'comments' }]
-    });
+// GET /posts/:id – пост с раскрытой ссылкой на автора
+router.get('/:id', checkId('id'), async (req, res) => {
+  const post = await Post.findByIdAndUpdate(
+    req.params.id,
+    { $inc: { views: 1 } },
+    { new: true }
+  ).populate('authorId', 'email role profile');
+  if (!post) return notFound(res);
+  res.json({ success: true, data: post });
+});
+
+// POST /posts – создание поста (вложенные comments и tags можно передать сразу)
+router.post('/', authMiddleware, async (req, res) => {
+  const { title, content, author, tags, status } = req.body;
+  const post = await Post.create({
+    title,
+    content,
+    tags,
+    status,
+    author: (author || '').trim() || req.user.email,
+    authorId: req.user.id
+  });
+  res.status(201).json({ success: true, data: post, message: 'Пост создан' });
+});
+
+// PUT /posts/:id – обновление с проверкой схемы
+router.put('/:id', authMiddleware, checkId('id'), async (req, res) => {
+  const { title, content, author, tags, status } = req.body;
+  const post = await Post.findByIdAndUpdate(
+    req.params.id,
+    { title, content, author: author || undefined, tags, status },
+    { new: true, runValidators: true, omitUndefined: true }
+  ).select('-ratings');
+  if (!post) return notFound(res);
+  res.json({ success: true, data: post, message: 'Пост обновлён' });
+});
+
+// DELETE /posts/:id – удаление с возвратом удалённого документа
+router.delete('/:id', authMiddleware, checkId('id'), async (req, res) => {
+  const post = await Post.findByIdAndDelete(req.params.id);
+  if (!post) return notFound(res);
+  res.json({ success: true, data: post, message: 'Пост удалён' });
+});
+
+// ---------- Вложенные массивы ----------
+
+// GET /posts/:id/comments – только массив комментариев (проекция)
+router.get('/:id/comments', checkId('id'), async (req, res) => {
+  const post = await Post.findById(req.params.id).select('comments');
+  if (!post) return notFound(res);
+  res.json({ success: true, data: post.comments, count: post.comments.length });
+});
+
+// POST /posts/:id/comments – добавление элемента в массив ($push)
+router.post('/:id/comments', authMiddleware, checkId('id'), async (req, res) => {
+  const { text } = req.body;
+  const author = (req.body.author || '').trim() || req.user.email;
+  const post = await Post.findByIdAndUpdate(
+    req.params.id,
+    { $push: { comments: { author, text } } },
+    { new: true, runValidators: true }
+  );
+  if (!post) return notFound(res);
+  const comment = post.comments[post.comments.length - 1];
+  res.status(201).json({ success: true, data: comment, message: 'Комментарий добавлен' });
+});
+
+// PATCH /posts/:id/comments/:commentId/like – изменение элемента массива ($inc + $)
+router.patch(
+  '/:id/comments/:commentId/like',
+  checkId('id', 'commentId'),
+  async (req, res) => {
+    const post = await Post.findOneAndUpdate(
+      { _id: req.params.id, 'comments._id': req.params.commentId },
+      { $inc: { 'comments.$.likes': 1 } },
+      { new: true }
+    );
     if (!post) {
-      return res.status(404).json({ success: false, error: 'Пост не найден' });
+      return res.status(404).json({ success: false, error: 'Комментарий не найден' });
     }
-    res.json({ success: true, data: post });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    const comment = post.comments.id(req.params.commentId);
+    res.json({ success: true, data: comment });
   }
-});
+);
 
-router.post('/', authMiddleware, validatePost, async (req, res) => {
-  try {
-    const { title, content, author } = req.body;
-    const newPost = await Post.create({
-      title: title.trim(),
-      content: content.trim(),
-      author: (author || '').trim() || req.user.email,
-      rating: 0,
-      ratingCount: 0
-    });
-    res.status(201).json({ success: true, data: newPost, message: 'Пост создан' });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-router.put('/:id', authMiddleware, validatePost, async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const { title, content, author } = req.body;
-    const post = await Post.findByPk(id);
-    if (!post) {
-      return res.status(404).json({ success: false, error: 'Пост не найден' });
+// DELETE /posts/:id/comments/:commentId – удаление элемента массива ($pull)
+router.delete(
+  '/:id/comments/:commentId',
+  authMiddleware,
+  checkId('id', 'commentId'),
+  async (req, res) => {
+    const result = await Post.updateOne(
+      { _id: req.params.id },
+      { $pull: { comments: { _id: req.params.commentId } } }
+    );
+    if (!result.modifiedCount) {
+      return res.status(404).json({ success: false, error: 'Комментарий не найден' });
     }
-    await post.update({
-      title: title.trim(),
-      content: content.trim(),
-      author: (author || '').trim() || post.author
-    });
-    res.json({ success: true, data: post, message: 'Пост обновлён' });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.json({ success: true, message: 'Комментарий удалён' });
   }
+);
+
+// POST /posts/:id/tags – добавление тега без дублей ($addToSet)
+router.post('/:id/tags', authMiddleware, checkId('id'), async (req, res) => {
+  const tag = (req.body.tag || '').trim().toLowerCase();
+  if (!tag) return res.status(400).json({ success: false, error: 'Тег обязателен' });
+  const post = await Post.findByIdAndUpdate(
+    req.params.id,
+    { $addToSet: { tags: tag } },
+    { new: true }
+  ).select('title tags');
+  if (!post) return notFound(res);
+  res.json({ success: true, data: post });
 });
 
-router.delete('/:id', authMiddleware, async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const deleted = await Post.destroy({ where: { id } });
-    if (!deleted) {
-      return res.status(404).json({ success: false, error: 'Пост не найден' });
-    }
-    res.json({ success: true, message: 'Пост удалён' });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
+// GET /posts/tag/:tag – статический метод модели
+router.get('/tag/:tag', async (req, res) => {
+  const posts = await Post.findByTag(req.params.tag).select('-ratings');
+  res.json({ success: true, data: posts, count: posts.length });
 });
 
-router.post('/:id/comments', async (req, res) => {
-  try {
-    const postId = parseInt(req.params.id);
-    const { text, author } = req.body;
-    const post = await Post.findByPk(postId);
-    if (!post) {
-      return res.status(404).json({ success: false, error: 'Пост не найден' });
-    }
-    const comment = await Comment.create({ text, author, postId });
-    res.status(201).json({ success: true, data: comment, message: 'Комментарий добавлен' });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+// POST /posts/:id/rate – оценка через метод экземпляра
+router.post('/:id/rate', authMiddleware, checkId('id'), async (req, res) => {
+  const value = Number(req.body.rating);
+  if (!Number.isInteger(value) || value < 1 || value > 5) {
+    return res.status(400).json({ success: false, error: 'Оценка – целое число от 1 до 5' });
   }
-});
-
-router.get('/:id/comments', async (req, res) => {
-  try {
-    const postId = parseInt(req.params.id);
-    const comments = await Comment.findAll({
-      where: { postId },
-      order: [['createdAt', 'ASC']]
-    });
-    res.json({ success: true, data: comments, count: comments.length });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-router.post('/:id/rate', async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const { rating } = req.body;
-    const post = await Post.findByPk(id);
-    if (!post) {
-      return res.status(404).json({ success: false, error: 'Пост не найден' });
-    }
-    const total = post.rating * post.ratingCount + rating;
-    post.ratingCount += 1;
-    post.rating = total / post.ratingCount;
-    await post.save();
-    res.json({
-      success: true,
-      data: {
-        averageRating: Math.round(post.rating * 100) / 100,
-        ratingCount: post.ratingCount
-      },
-      message: 'Оценка добавлена'
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
+  const post = await Post.findById(req.params.id);
+  if (!post) return notFound(res);
+  await post.rate(req.user.id, value);
+  res.json({
+    success: true,
+    data: { averageRating: post.rating, ratingCount: post.ratings.length },
+    message: 'Оценка учтена'
+  });
 });
 
 module.exports = router;

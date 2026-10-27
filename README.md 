@@ -23,7 +23,43 @@ npm install
 # Установить dev-зависимости
 npm install nodemon --save-dev
 
-## 🚀 Запуск сервера и React-клиента (ЛР5)
+## 🍃 Запуск с MongoDB (ЛР6, ветка 26)
+
+В этой ветке сервер хранит данные в MongoDB через Mongoose (вместо PostgreSQL и Sequelize).
+Пост – один документ: теги, комментарии и оценки хранятся в нём массивами.
+
+```bash
+# 1. Сервер (порт 3000)
+cp .env.example .env      # указать MONGO_URI (Atlas или локальная MongoDB)
+npm install
+npm run seed              # демо-данные: 2 пользователя, 10 постов
+npm run dev
+
+# 2. Клиент (порт 5173), во втором терминале
+cd blog-client
+cp .env.example .env
+npm install
+npm run dev
+```
+
+- Демо-учётные записи: `user@yutu.local / User123!`, `admin@yutu.local / Admin123!`.
+- Коллекция Postman: `docs/YuTu-MongoDB.postman_collection.json`.
+
+| Метод | Маршрут | Описание |
+|---|---|---|
+| GET | `/api/posts?search=&tag=&sort=date\|rating&page=&limit=` | список с поиском и пагинацией |
+| GET | `/api/posts/:id` | пост, автор раскрыт через `populate` |
+| POST / PUT / DELETE | `/api/posts`, `/api/posts/:id` | создание, изменение, удаление (JWT) |
+| POST | `/api/posts/:id/comments` | добавить комментарий (`$push`) |
+| PATCH | `/api/posts/:id/comments/:commentId/like` | лайк комментария (`$inc` по позиции `$`) |
+| DELETE | `/api/posts/:id/comments/:commentId` | удалить комментарий (`$pull`) |
+| POST | `/api/posts/:id/tags` | добавить тег (`$addToSet`) |
+| GET | `/api/posts/tag/:tag` | посты по тегу (статический метод) |
+| POST | `/api/posts/:id/rate` | оценка (метод экземпляра) |
+| GET | `/api/posts/stats` | статистика (aggregation pipeline) |
+| GET / DELETE | `/api/admin/users?city=`, `/api/admin/users/:id` | поиск по `profile.city`, каскадное удаление |
+
+## 🚀 Запуск с PostgreSQL (ЛР5, ветка 25)
 
 ```bash
 # 1. Сервер (порт 3000), нужен PostgreSQL из .env

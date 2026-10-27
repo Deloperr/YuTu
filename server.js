@@ -1,8 +1,10 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose');
+const connectDB = require('./db');
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 // Разрешаем запросы от React-клиента (Vite, порт 5173)
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
@@ -33,13 +35,16 @@ app.use('/', api);
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'Blog API работает',
+    message: 'Blog API работает (MongoDB)',
+    database: mongoose.connection.name,
     endpoints: {
       auth: '/auth/register, /auth/login',
-      posts: '/posts?search=&sort=date|rating&page=1&limit=10',
+      posts: '/posts?search=&tag=&sort=date|rating&page=1&limit=10',
       stats: '/posts/stats',
       postById: '/posts/:id',
       comments: '/posts/:id/comments',
+      like: '/posts/:id/comments/:commentId/like',
+      tags: '/posts/:id/tags, /posts/tag/:tag',
       rate: '/posts/:id/rate',
       profile: '/profile',
       admin: '/admin/users'
@@ -51,7 +56,19 @@ app.use((req, res) => {
   res.status(404).json({ success: false, error: `Маршрут ${req.originalUrl} не найден` });
 });
 
+// Ошибки Mongoose переводятся в понятные коды ответа
 app.use((err, req, res, next) => {
+  if (err instanceof mongoose.Error.ValidationError) {
+    const errors = Object.values(err.errors).map((e) => e.message);
+    return res.status(400).json({ success: false, error: errors.join('; ') });
+  }
+  if (err instanceof mongoose.Error.CastError) {
+    return res.status(400).json({ success: false, error: `Некорректное значение поля ${err.path}` });
+  }
+  if (err.code === 11000) {
+    const field = Object.keys(err.keyValue || {})[0] || 'поле';
+    return res.status(409).json({ success: false, error: `Значение ${field} уже используется` });
+  }
   console.error('Ошибка:', err.stack);
   res.status(err.status || 500).json({
     success: false,
@@ -59,7 +76,19 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(port, () => {
-  console.log(`Сервер запущен на порту ${port}`);
-  console.log(`http://localhost:${port}`);
-});
+// Сервер принимает запросы только после подключения к базе данных
+connectDB()
+  .then(() => {
+    const server = app.listen(port, () => {
+      console.log(`Сервер запущен на порту ${port}`);
+      console.log(`http://localhost:${port}`);
+    });
+    server.on('error', (err) => {
+      console.error(err.code === 'EADDRINUSE' ? `Порт ${port} занят` : err.message);
+      process.exit(1);
+    });
+  })
+  .catch((err) => {
+    console.error('MongoDB connection error:', err.message);
+    process.exit(1);
+  });
