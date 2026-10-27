@@ -76,7 +76,9 @@ postSchema.statics.findByTag = function (tag) {
 
 // Виртуальное поле: число комментариев (не хранится в базе)
 postSchema.virtual('commentCount').get(function () {
-  return this.comments ? this.comments.length : 0;
+  // Если комментарии исключены проекцией (select), поле не выводится
+  if (!this.isSelected('comments')) return undefined;
+  return this.comments.length;
 });
 
 module.exports = mongoose.model('Post', postSchema);
