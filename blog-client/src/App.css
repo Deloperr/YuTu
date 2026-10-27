@@ -28,6 +28,60 @@
   letter-spacing: -0.5px;
 }
 
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* ---------- Кнопка темы ---------- */
+.theme-toggle {
+  position: relative;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+}
+
+.theme-toggle svg {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.4s ease, opacity 0.3s ease;
+}
+
+/* В светлой теме видна луна, в тёмной – солнце; иконки сменяются поворотом */
+.icon-sun {
+  transform: rotate(-90deg) scale(0.4);
+  opacity: 0;
+}
+
+[data-theme='dark'] .icon-sun {
+  transform: none;
+  opacity: 1;
+}
+
+[data-theme='dark'] .icon-moon {
+  transform: rotate(90deg) scale(0.4);
+  opacity: 0;
+}
+
 .logo span {
   color: var(--accent);
 }

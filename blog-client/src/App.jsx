@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import LoginForm from './components/LoginForm';
 import PostList from './components/PostList';
+import ThemeToggle from './components/ThemeToggle';
 import './App.css';
 
 const loadUser = () => {
@@ -31,7 +32,10 @@ function App() {
           <a className="logo" href="/">
             Yu<span>Tu</span>
           </a>
-          <LoginForm user={user} onLogin={setUser} onLogout={logout} />
+          <div className="topbar-right">
+            <ThemeToggle />
+            <LoginForm user={user} onLogin={setUser} onLogout={logout} />
+          </div>
         </div>
       </header>
 
