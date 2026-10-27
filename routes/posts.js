@@ -1,15 +1,55 @@
 const express = require('express');
+const { Op } = require('sequelize');
 const { Post, Comment } = require('../models');
+const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Проверка обязательных полей поста
+const validatePost = (req, res, next) => {
+  const { title, content } = req.body;
+  if (!title || !title.trim() || !content || !content.trim()) {
+    return res.status(400).json({
+      success: false,
+      error: 'Заголовок и содержимое обязательны'
+    });
+  }
+  next();
+};
+
+// GET /posts?search=&sort=date|rating&page=1&limit=10
 router.get('/', async (req, res) => {
   try {
-    const posts = await Post.findAll({
-      include: [{ model: Comment, as: 'comments' }],
-      order: [['createdAt', 'DESC']]
+    const search = (req.query.search || '').trim();
+    const sort = req.query.sort === 'rating' ? 'rating' : 'createdAt';
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+
+    // Поиск по заголовку, содержимому и автору без учёта регистра
+    const where = search
+      ? {
+          [Op.or]: ['title', 'content', 'author'].map((field) => ({
+            [field]: { [Op.iLike]: `%${search}%` }
+          }))
+        }
+      : {};
+
+    const { rows, count } = await Post.findAndCountAll({
+      where,
+      include: [{ model: Comment, as: 'comments', attributes: ['id'] }],
+      order: [[sort, 'DESC NULLS LAST'], ['id', 'DESC']],
+      limit,
+      offset: (page - 1) * limit,
+      distinct: true
     });
-    res.json({ success: true, data: posts, count: posts.length });
+    res.json({
+      success: true,
+      data: rows,
+      count: rows.length,
+      total: count,
+      page,
+      pages: Math.ceil(count / limit)
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -52,17 +92,23 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, validatePost, async (req, res) => {
   try {
     const { title, content, author } = req.body;
-    const newPost = await Post.create({ title, content, author });
+    const newPost = await Post.create({
+      title: title.trim(),
+      content: content.trim(),
+      author: (author || '').trim() || req.user.email,
+      rating: 0,
+      ratingCount: 0
+    });
     res.status(201).json({ success: true, data: newPost, message: 'Пост создан' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', authMiddleware, validatePost, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { title, content, author } = req.body;
@@ -70,14 +116,18 @@ router.put('/:id', async (req, res) => {
     if (!post) {
       return res.status(404).json({ success: false, error: 'Пост не найден' });
     }
-    await post.update({ title, content, author });
+    await post.update({
+      title: title.trim(),
+      content: content.trim(),
+      author: (author || '').trim() || post.author
+    });
     res.json({ success: true, data: post, message: 'Пост обновлён' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const deleted = await Post.destroy({ where: { id } });

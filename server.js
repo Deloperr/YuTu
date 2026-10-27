@@ -1,8 +1,11 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const app = express();
 const port = 3000;
 
+// Разрешаем запросы от React-клиента (Vite, порт 5173)
+app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -11,10 +14,21 @@ const adminRoutes = require('./routes/admin');
 const postsRoutes = require('./routes/posts');
 const profileRoutes = require('./routes/profile');
 
-app.use('/auth', authRoutes);
-app.use('/admin', adminRoutes);
-app.use('/posts', postsRoutes);
-app.use('/profile', profileRoutes);
+// Искусственная задержка ответа для проверки состояний загрузки
+const delay = parseInt(process.env.API_DELAY_MS) || 0;
+if (delay > 0) {
+  app.use((req, res, next) => setTimeout(next, delay));
+}
+
+// Маршруты доступны и по префиксу /api (для React-клиента)
+const api = express.Router();
+api.use('/auth', authRoutes);
+api.use('/admin', adminRoutes);
+api.use('/posts', postsRoutes);
+api.use('/profile', profileRoutes);
+
+app.use('/api', api);
+app.use('/', api);
 
 app.get('/', (req, res) => {
   res.json({
@@ -22,7 +36,7 @@ app.get('/', (req, res) => {
     message: 'Blog API работает',
     endpoints: {
       auth: '/auth/register, /auth/login',
-      posts: '/posts',
+      posts: '/posts?search=&sort=date|rating&page=1&limit=10',
       stats: '/posts/stats',
       postById: '/posts/:id',
       comments: '/posts/:id/comments',
