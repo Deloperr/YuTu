@@ -5,7 +5,6 @@ const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Проверка формата ObjectId в параметрах маршрута
 const checkId = (...params) => (req, res, next) => {
   for (const name of params) {
     if (!mongoose.isValidObjectId(req.params[name])) {
@@ -18,10 +17,8 @@ const checkId = (...params) => (req, res, next) => {
 const notFound = (res) =>
   res.status(404).json({ success: false, error: 'Пост не найден' });
 
-// Экранирование спецсимволов для поиска по регулярному выражению
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-// GET /posts?search=&tag=&sort=date|rating&page=1&limit=10
 router.get('/', async (req, res) => {
   const search = (req.query.search || '').trim();
   const limit = Math.min(parseInt(req.query.limit) || 10, 50);
@@ -37,7 +34,6 @@ router.get('/', async (req, res) => {
   }
   if (req.query.tag) filter.tags = req.query.tag.toLowerCase();
 
-  // Цепочка методов Query: фильтр, сортировка, пропуск, лимит
   const [posts, total] = await Promise.all([
     Post.find(filter)
       .select('-ratings')
@@ -57,7 +53,6 @@ router.get('/', async (req, res) => {
   });
 });
 
-// GET /posts/stats – конвейер агрегации
 router.get('/stats', async (req, res) => {
   const [totals] = await Post.aggregate([
     {
@@ -89,7 +84,6 @@ router.get('/stats', async (req, res) => {
   res.json({ success: true, data: { ...totals, popularTags } });
 });
 
-// GET /posts/:id – пост с раскрытой ссылкой на автора
 router.get('/:id', checkId('id'), async (req, res) => {
   const post = await Post.findByIdAndUpdate(
     req.params.id,
@@ -100,7 +94,6 @@ router.get('/:id', checkId('id'), async (req, res) => {
   res.json({ success: true, data: post });
 });
 
-// POST /posts – создание поста (вложенные comments и tags можно передать сразу)
 router.post('/', authMiddleware, async (req, res) => {
   const { title, content, author, tags, status } = req.body;
   const post = await Post.create({
@@ -114,7 +107,6 @@ router.post('/', authMiddleware, async (req, res) => {
   res.status(201).json({ success: true, data: post, message: 'Пост создан' });
 });
 
-// PUT /posts/:id – обновление с проверкой схемы
 router.put('/:id', authMiddleware, checkId('id'), async (req, res) => {
   const { title, content, author, tags, status } = req.body;
   const post = await Post.findByIdAndUpdate(
@@ -126,23 +118,18 @@ router.put('/:id', authMiddleware, checkId('id'), async (req, res) => {
   res.json({ success: true, data: post, message: 'Пост обновлён' });
 });
 
-// DELETE /posts/:id – удаление с возвратом удалённого документа
 router.delete('/:id', authMiddleware, checkId('id'), async (req, res) => {
   const post = await Post.findByIdAndDelete(req.params.id);
   if (!post) return notFound(res);
   res.json({ success: true, data: post, message: 'Пост удалён' });
 });
 
-// ---------- Вложенные массивы ----------
-
-// GET /posts/:id/comments – только массив комментариев (проекция)
 router.get('/:id/comments', checkId('id'), async (req, res) => {
   const post = await Post.findById(req.params.id).select('comments');
   if (!post) return notFound(res);
   res.json({ success: true, data: post.comments, count: post.comments.length });
 });
 
-// POST /posts/:id/comments – добавление элемента в массив ($push)
 router.post('/:id/comments', authMiddleware, checkId('id'), async (req, res) => {
   const { text } = req.body;
   const author = (req.body.author || '').trim() || req.user.email;
@@ -156,7 +143,6 @@ router.post('/:id/comments', authMiddleware, checkId('id'), async (req, res) => 
   res.status(201).json({ success: true, data: comment, message: 'Комментарий добавлен' });
 });
 
-// PATCH /posts/:id/comments/:commentId/like – изменение элемента массива ($inc + $)
 router.patch(
   '/:id/comments/:commentId/like',
   checkId('id', 'commentId'),
@@ -174,7 +160,6 @@ router.patch(
   }
 );
 
-// DELETE /posts/:id/comments/:commentId – удаление элемента массива ($pull)
 router.delete(
   '/:id/comments/:commentId',
   authMiddleware,
@@ -191,7 +176,6 @@ router.delete(
   }
 );
 
-// POST /posts/:id/tags – добавление тега без дублей ($addToSet)
 router.post('/:id/tags', authMiddleware, checkId('id'), async (req, res) => {
   const tag = (req.body.tag || '').trim().toLowerCase();
   if (!tag) return res.status(400).json({ success: false, error: 'Тег обязателен' });
@@ -204,13 +188,11 @@ router.post('/:id/tags', authMiddleware, checkId('id'), async (req, res) => {
   res.json({ success: true, data: post });
 });
 
-// GET /posts/tag/:tag – статический метод модели
 router.get('/tag/:tag', async (req, res) => {
   const posts = await Post.findByTag(req.params.tag).select('-ratings');
   res.json({ success: true, data: posts, count: posts.length });
 });
 
-// POST /posts/:id/rate – оценка через метод экземпляра
 router.post('/:id/rate', authMiddleware, checkId('id'), async (req, res) => {
   const value = Number(req.body.rating);
   if (!Number.isInteger(value) || value < 1 || value > 5) {

@@ -12,7 +12,6 @@ router.get('/', authMiddleware, async (req, res) => {
   res.json({ success: true, data: user });
 });
 
-// PATCH /profile – изменение полей вложенного документа profile
 router.patch('/', authMiddleware, async (req, res) => {
   const update = {};
   for (const field of ['displayName', 'city', 'bio']) {

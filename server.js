@@ -6,7 +6,6 @@ const connectDB = require('./db');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Разрешаем запросы от React-клиента (Vite, порт 5173)
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -16,13 +15,11 @@ const adminRoutes = require('./routes/admin');
 const postsRoutes = require('./routes/posts');
 const profileRoutes = require('./routes/profile');
 
-// Искусственная задержка ответа для проверки состояний загрузки
 const delay = parseInt(process.env.API_DELAY_MS) || 0;
 if (delay > 0) {
   app.use((req, res, next) => setTimeout(next, delay));
 }
 
-// Маршруты доступны и по префиксу /api (для React-клиента)
 const api = express.Router();
 api.use('/auth', authRoutes);
 api.use('/admin', adminRoutes);
@@ -56,7 +53,6 @@ app.use((req, res) => {
   res.status(404).json({ success: false, error: `Маршрут ${req.originalUrl} не найден` });
 });
 
-// Ошибки Mongoose переводятся в понятные коды ответа
 app.use((err, req, res, next) => {
   if (err instanceof mongoose.Error.ValidationError) {
     const errors = Object.values(err.errors).map((e) => e.message);
@@ -76,7 +72,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Сервер принимает запросы только после подключения к базе данных
 connectDB()
   .then(() => {
     const server = app.listen(port, () => {

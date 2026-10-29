@@ -24,10 +24,8 @@ function PostList({ user }) {
   const [sortBy, setSortBy] = useState('date');
   const [notice, setNotice] = useState(null);
 
-  // Запрос на сервер уходит только после паузы ввода 500 мс
   const debouncedSearch = useDebounce(search, 500);
 
-  // Загрузка первой страницы при монтировании и смене поиска/сортировки
   useEffect(() => {
     const controller = new AbortController();
 
@@ -44,7 +42,6 @@ function PostList({ user }) {
         setPage(1);
         setPages(data.pages);
       } catch (err) {
-        // Запрос отменён при размонтировании или новом поиске
         if (axios.isCancel(err)) return;
         setError(err.message);
       } finally {
@@ -53,11 +50,9 @@ function PostList({ user }) {
     };
 
     load();
-    // Отмена незавершённого запроса
     return () => controller.abort();
   }, [debouncedSearch, sortBy, reloadKey]);
 
-  // Уведомление скрывается через 4 секунды
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(null), 4000);
@@ -77,7 +72,6 @@ function PostList({ user }) {
         page: page + 1,
         limit: PAGE_SIZE,
       });
-      // Исключаем дубли, если список сместился после добавления
       setPosts((prev) => {
         const ids = new Set(prev.map((p) => p.id));
         return [...prev, ...data.data.filter((p) => !ids.has(p.id))];
@@ -99,7 +93,6 @@ function PostList({ user }) {
     setEditingId(null);
   };
 
-  // Оптимистичное добавление: временный пост сразу появляется в списке
   const handleAdd = async (fields) => {
     const tempId = Date.now();
     const tempPost = {
@@ -116,20 +109,17 @@ function PostList({ user }) {
 
     try {
       const { data } = await addPost(fields);
-      // Замена временного ID на реальный из ответа сервера
       setPosts((prev) =>
         prev.map((p) => (p.id === tempId ? { ...data.data, comments: [] } : p))
       );
       setNotice({ type: 'success', text: 'Пост создан' });
     } catch (err) {
-      // Откат: удаляем временный пост
       setPosts((prev) => prev.filter((p) => p.id !== tempId));
       setTotal((t) => t - 1);
       setNotice({ type: 'error', text: `Пост не добавлен: ${err.message}` });
     }
   };
 
-  // Оптимистичное редактирование с откатом к прежней версии
   const handleUpdate = async (id, fields) => {
     const previous = posts.find((p) => p.id === id);
     setPosts((prev) =>
@@ -150,7 +140,6 @@ function PostList({ user }) {
     }
   };
 
-  // Оптимистичное удаление: при ошибке пост возвращается на место
   const handleDelete = async (id) => {
     const index = posts.findIndex((p) => p.id === id);
     const removed = posts[index];
@@ -197,7 +186,6 @@ function PostList({ user }) {
     setAuthor(post.author);
   };
 
-  // Enter в однострочных полях, Ctrl/Cmd+Enter в тексте записи
   const handleKeyDown = (e) => {
     if (e.key !== 'Enter') return;
     if (e.target.tagName === 'TEXTAREA' && !(e.ctrlKey || e.metaKey)) return;
@@ -391,7 +379,6 @@ function PostList({ user }) {
   );
 }
 
-// Рейтинг звёздами: заполнено округлённое значение из пяти
 function Stars({ value }) {
   const rating = Number(value || 0);
   const full = Math.round(rating);

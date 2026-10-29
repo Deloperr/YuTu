@@ -1,4 +1,3 @@
-// Общие настройки сериализации: поле id первым вместо _id, без служебного __v
 module.exports = {
   virtuals: true,
   versionKey: false,

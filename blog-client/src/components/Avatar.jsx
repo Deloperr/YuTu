@@ -1,4 +1,3 @@
-// Круглый аватар с инициалами; цвет зависит от имени автора
 function Avatar({ name = '', size = 40 }) {
   const clean = name.split('@')[0].trim() || '?';
   const initials = clean

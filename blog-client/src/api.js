@@ -5,14 +5,12 @@ const api = axios.create({
   timeout: 10000,
 });
 
-// Перехватчик запроса: добавляем JWT-токен в заголовок Authorization
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Перехватчик ответа: единый текст ошибки и сброс просроченного токена
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -33,13 +31,11 @@ api.interceptors.response.use(
   }
 );
 
-// Аутентификация
 export const login = (email, password) =>
   api.post('/auth/login', { email, password });
 export const register = (email, password) =>
   api.post('/auth/register', { email, password });
 
-// Посты: params = { search, sort, page, limit }, signal – для отмены запроса
 export const fetchPosts = (params, signal) =>
   api.get('/posts', { params, signal });
 export const addPost = (post) => api.post('/posts', post);

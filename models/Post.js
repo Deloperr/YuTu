@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 const toJSON = require('./toJSON');
 
-// Комментарий – вложенный документ: хранится в массиве comments поста
 const commentSchema = new mongoose.Schema(
   {
     author: { type: String, required: true, trim: true },
@@ -16,7 +15,6 @@ const commentSchema = new mongoose.Schema(
   { timestamps: true, toJSON }
 );
 
-// Оценка пользователя: одна на пользователя, хранится в массиве ratings
 const ratingSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -39,7 +37,6 @@ const postSchema = new mongoose.Schema(
       trim: true
     },
     author: { type: String, required: true, trim: true },
-    // Ссылка на документ другой коллекции (раскрывается через populate)
     authorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     status: { type: String, enum: ['draft', 'published'], default: 'published' },
     tags: [{ type: String, lowercase: true, trim: true }],
@@ -51,12 +48,10 @@ const postSchema = new mongoose.Schema(
   { timestamps: true, toJSON }
 );
 
-// Индексы для частых запросов: лента по дате, фильтр по тегу и автору
 postSchema.index({ createdAt: -1 });
 postSchema.index({ tags: 1 });
 postSchema.index({ authorId: 1 });
 
-// Метод экземпляра: поставить или изменить оценку и пересчитать средний рейтинг
 postSchema.methods.rate = function (userId, value) {
   const existing = this.ratings.find((r) => r.userId.equals(userId));
   if (existing) {
@@ -69,14 +64,11 @@ postSchema.methods.rate = function (userId, value) {
   return this.save();
 };
 
-// Статический метод модели: посты с указанным тегом
 postSchema.statics.findByTag = function (tag) {
   return this.find({ tags: tag.toLowerCase() }).sort({ createdAt: -1 });
 };
 
-// Виртуальное поле: число комментариев (не хранится в базе)
 postSchema.virtual('commentCount').get(function () {
-  // Если комментарии исключены проекцией (select), поле не выводится
   if (!this.isSelected('comments')) return undefined;
   return this.comments.length;
 });

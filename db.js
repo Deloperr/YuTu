@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 
-// Подключение к MongoDB (Atlas или локальная установка) по строке из .env
 const connectDB = async () => {
   if (!process.env.MONGO_URI) {
     throw new Error('Не задана переменная окружения MONGO_URI');

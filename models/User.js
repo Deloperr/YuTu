@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 const toJSON = require('./toJSON');
 
-// Вложенный документ профиля хранится внутри пользователя, без отдельной коллекции
 const profileSchema = new mongoose.Schema(
   {
     displayName: { type: String, trim: true, maxlength: 60 },
@@ -37,7 +36,6 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Каскадное удаление: вместе с пользователем удаляются его посты
 userSchema.post('findOneAndDelete', async function (doc) {
   if (doc) {
     await mongoose.model('Post').deleteMany({ authorId: doc._id });

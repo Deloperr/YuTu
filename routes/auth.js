@@ -11,7 +11,6 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Пароль – не короче 6 символов' });
   }
   const passwordHash = await bcrypt.hash(password, 10);
-  // Повтор email отклоняется уникальным индексом (код 11000 → 409)
   const user = await User.create({ email, passwordHash, profile });
   res.status(201).json({ success: true, data: user });
 });

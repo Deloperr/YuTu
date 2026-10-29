@@ -1,4 +1,3 @@
-// Заполнение MongoDB демонстрационными данными: npm run seed
 require('dotenv').config();
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
@@ -28,7 +27,6 @@ const comments = [
 (async () => {
   await connectDB();
   await Promise.all([User.deleteMany({}), Post.deleteMany({})]);
-  // Индексы создаются заново, чтобы уникальность email работала сразу
   await Promise.all([User.syncIndexes(), Post.syncIndexes()]);
 
   const [admin, user] = await User.create([
@@ -54,7 +52,6 @@ const comments = [
       author,
       authorId: i % 2 ? user._id : admin._id,
       tags,
-      // У части постов сразу есть вложенные комментарии
       comments: comments.slice(0, i % 4).map(([a, text], k) => ({
         author: a,
         text,
