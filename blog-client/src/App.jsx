@@ -12,7 +12,6 @@ const loadUser = () => {
 function App() {
   const [user, setUser] = useState(loadUser);
 
-  // Сервер вернул 401 – токен удалён в api.js, сбрасываем пользователя
   useEffect(() => {
     const handler = () => setUser(null);
     window.addEventListener('auth-logout', handler);

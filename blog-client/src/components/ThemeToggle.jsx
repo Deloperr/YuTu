@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 
-// Начальная тема: сохранённый выбор или системная настройка
 const getInitialTheme = () => {
   const saved = localStorage.getItem('theme');
   if (saved === 'light' || saved === 'dark') return saved;
@@ -19,7 +18,6 @@ function ThemeToggle() {
 
   const toggle = () => {
     const root = document.documentElement;
-    // Класс включает плавный переход цветов только на время смены темы
     root.classList.add('theme-transition');
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
     setTimeout(() => root.classList.remove('theme-transition'), 400);

@@ -5,7 +5,6 @@ const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Проверка обязательных полей поста
 const validatePost = (req, res, next) => {
   const { title, content } = req.body;
   if (!title || !title.trim() || !content || !content.trim()) {
@@ -17,7 +16,6 @@ const validatePost = (req, res, next) => {
   next();
 };
 
-// GET /posts?search=&sort=date|rating&page=1&limit=10
 router.get('/', async (req, res) => {
   try {
     const search = (req.query.search || '').trim();
@@ -25,7 +23,6 @@ router.get('/', async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const page = Math.max(parseInt(req.query.page) || 1, 1);
 
-    // Поиск по заголовку, содержимому и автору без учёта регистра
     const where = search
       ? {
           [Op.or]: ['title', 'content', 'author'].map((field) => ({

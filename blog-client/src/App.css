@@ -1,4 +1,3 @@
-/* ---------- Шапка ---------- */
 .topbar {
   position: sticky;
   top: 0;
@@ -35,7 +34,6 @@
   min-width: 0;
 }
 
-/* ---------- Кнопка темы ---------- */
 .theme-toggle {
   position: relative;
   flex-shrink: 0;
@@ -66,7 +64,6 @@
   transition: transform 0.4s ease, opacity 0.3s ease;
 }
 
-/* В светлой теме видна луна, в тёмной – солнце; иконки сменяются поворотом */
 .icon-sun {
   transform: rotate(-90deg) scale(0.4);
   opacity: 0;
@@ -90,7 +87,6 @@
   font-size: 18px;
 }
 
-/* ---------- Кнопки ---------- */
 .btn {
   border: 1px solid transparent;
   border-radius: 999px;
@@ -141,7 +137,6 @@
   cursor: not-allowed;
 }
 
-/* ---------- Вход ---------- */
 .auth {
   position: relative;
 }
@@ -239,7 +234,6 @@
   font-weight: 600;
 }
 
-/* ---------- Основная колонка ---------- */
 .app {
   flex: 1;
   width: 100%;
@@ -282,7 +276,6 @@
   color: var(--text);
 }
 
-/* ---------- Редактор записи ---------- */
 .composer {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -362,7 +355,6 @@
   margin-left: auto;
 }
 
-/* ---------- Поиск и сортировка ---------- */
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -448,7 +440,6 @@
   color: var(--muted);
 }
 
-/* ---------- Лента ---------- */
 .post-list {
   display: flex;
   flex-direction: column;
@@ -558,7 +549,6 @@
   padding: 10px 28px;
 }
 
-/* ---------- Состояния ---------- */
 .loading,
 .empty,
 .error-box {
@@ -640,7 +630,6 @@
   }
 }
 
-/* ---------- Подвал ---------- */
 .footer {
   border-top: 1px solid var(--border);
   font-size: 13px;
@@ -651,7 +640,6 @@
   padding: 20px 16px;
 }
 
-/* ---------- Телефоны ---------- */
 @media (max-width: 560px) {
   .app {
     padding-top: 28px;
