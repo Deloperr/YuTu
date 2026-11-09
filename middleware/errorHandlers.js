@@ -48,16 +48,15 @@ function systemText(err) {
   return [...new Set([err.code, err.message].filter(Boolean))].join(' ');
 }
 
+// Сообщения по умолчанию
+const DEFAULT_CLIENT_MESSAGE = 'Запрос содержит некорректные данные.';
+const DEFAULT_SERVER_MESSAGE =
+  'На сервере произошла непредвиденная ошибка. Мы уже записали её в журнал.';
+
 // Сообщение для пользователя вместо системного текста ошибки
 function userMessage(err, status) {
-  if (status < 500) {
-    return CLIENT_ERROR_MESSAGES[err.type] || 'Запрос содержит некорректные данные.';
-  }
-  return (
-    err.userMessage ||
-    dbMessage(err) ||
-    'На сервере произошла непредвиденная ошибка. Мы уже записали её в журнал.'
-  );
+  if (status < 500) return CLIENT_ERROR_MESSAGES[err.type] || DEFAULT_CLIENT_MESSAGE;
+  return err.userMessage || dbMessage(err) || DEFAULT_SERVER_MESSAGE;
 }
 
 // 500 и прочие ошибки
