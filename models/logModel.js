@@ -29,6 +29,7 @@ async function withTable(action) {
   } catch (err) {
     if (err.code !== TABLE_MISSING) throw err;
     await ensureTable();
+    console.warn('Журнал запросов: таблица request_logs не найдена и создана заново');
     return action();
   }
 }
