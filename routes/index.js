@@ -5,17 +5,18 @@ const auth = require('../controllers/authController');
 const errors = require('../controllers/errorController');
 const logs = require('../controllers/logController');
 const { requireAuth } = require('../middleware/auth');
+const { requireLog } = require('../middleware/logger');
 
 const router = express.Router();
 
 // Посты
 router.get('/', posts.list);
 router.get('/item/:id', posts.show);
-router.post('/item/:id/comments', posts.addComment);
+router.post('/item/:id/comments', requireLog, posts.addComment);
 
 // Добавление поста
 router.get('/add', requireAuth, posts.showAddForm);
-router.post('/add', requireAuth, posts.create);
+router.post('/add', requireAuth, requireLog, posts.create);
 
 // Журнал запросов
 router.get('/logs', requireAuth, logs.list);

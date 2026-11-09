@@ -1,4 +1,5 @@
 // Обработка ошибок
+const { dbMessage } = require('./dbMessages');
 
 // 404
 function notFound(req, res) {
@@ -8,7 +9,7 @@ function notFound(req, res) {
 }
 
 // Запасная страница ошибки
-function fallbackHtml(status) {
+function fallbackHtml(status, message) {
   return `<!doctype html>
 <html lang="ru">
 <head>
@@ -21,6 +22,7 @@ function fallbackHtml(status) {
     <div class="error-page">
       <div class="error-code">${status}</div>
       <h1>Внутренняя ошибка сервера</h1>
+      <p>${message}</p>
       <p><a class="btn" href="/">На главную</a></p>
     </div>
   </main>
@@ -35,26 +37,51 @@ const CLIENT_ERROR_MESSAGES = {
   'entity.parse.failed': 'Не удалось разобрать отправленные данные.',
 };
 
+// Заголовки страниц ошибок сервера
+const SERVER_TITLES = {
+  500: 'Внутренняя ошибка сервера',
+  503: 'Сервис временно недоступен',
+};
+
+// Системный текст: код и сообщение без повторов
+function systemText(err) {
+  return [...new Set([err.code, err.message].filter(Boolean))].join(' ');
+}
+
+// Сообщение для пользователя вместо системного текста ошибки
+function userMessage(err, status) {
+  if (status < 500) {
+    return CLIENT_ERROR_MESSAGES[err.type] || 'Запрос содержит некорректные данные.';
+  }
+  return (
+    err.userMessage ||
+    dbMessage(err) ||
+    'На сервере произошла непредвиденная ошибка. Мы уже записали её в журнал.'
+  );
+}
+
 // 500 и прочие ошибки
 function errorHandler(err, req, res, next) {
   const status =
     Number.isInteger(err.status) && err.status >= 400 && err.status < 600
       ? err.status
       : 500;
-  const isDev = process.env.NODE_ENV !== 'production';
 
   if (res.headersSent) return next(err);
 
-  // Текст ошибки для журнала запросов
-  res.locals.logError = err.message || err.code;
+  // Системный текст ошибки – только в журнал запросов и консоль
+  res.locals.logError = systemText(err);
 
   if (status === 404) return notFound(req, res);
+
+  const message = userMessage(err, status);
 
   // Журнал
   const time = new Date().toLocaleString('ru-RU');
   if (status >= 500) {
     console.error(`[${time}] ОШИБКА ${status}: ${req.method} ${req.originalUrl}`);
-    console.error(err.stack || err);
+    console.error(`  Причина: ${message}`);
+    console.error(`  Системная ошибка: ${systemText(err)}`);
   } else {
     console.warn(
       `[${time}] Ошибка запроса ${status}: ${req.method} ${req.originalUrl}`,
@@ -67,20 +94,15 @@ function errorHandler(err, req, res, next) {
   const locals = {
     pageTitle: status >= 500 ? 'Ошибка сервера' : 'Некорректный запрос',
     status,
-    message:
-      status >= 500
-        ? 'На сервере произошла непредвиденная ошибка. Мы уже записали её в журнал.'
-        : CLIENT_ERROR_MESSAGES[err.type] || 'Запрос содержит некорректные данные.',
-    details: isDev
-      ? { name: err.name, message: err.message, code: err.code, stack: err.stack }
-      : null,
+    title: SERVER_TITLES[status] || SERVER_TITLES[500],
+    message,
     user: res.locals.user || { name: 'Гость', isAuthenticated: false },
   };
 
   res.status(status).render(view, locals, (renderErr, html) => {
     if (renderErr) {
       console.error('Не удалось отрендерить страницу ошибки:', renderErr.message);
-      return res.status(status).type('html').send(fallbackHtml(status));
+      return res.status(status).type('html').send(fallbackHtml(status, message));
     }
     res.send(html);
   });

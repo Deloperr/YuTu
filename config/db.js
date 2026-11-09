@@ -9,7 +9,14 @@ const dbConfig = {
   password: process.env.DB_PASSWORD || 'postgres',
 };
 
-const pool = new Pool({ ...dbConfig, max: 10, idleTimeoutMillis: 30000 });
+// Ограничения ожидания: подключение – 3 с, блокировка таблицы – 3 с, запрос – 10 с
+const pool = new Pool({
+  ...dbConfig,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 3000,
+  options: '-c lock_timeout=3000 -c statement_timeout=10000',
+});
 
 // Ошибки пула
 pool.on('error', (err) => {

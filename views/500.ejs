@@ -2,21 +2,9 @@
 
 <div class="error-page">
   <div class="error-code"><%= status %></div>
-  <h1>Внутренняя ошибка сервера</h1>
-  <p><%= message %></p>
-  <p><a class="btn" href="/">На главную</a></p>
+  <h1><%= title %></h1>
+  <p class="error-message"><%= message %></p>
+  <p><a class="btn" href="javascript:location.reload()">Повторить</a> <a class="btn btn-ghost" href="/">На главную</a></p>
 </div>
-
-<% if (details) { %>
-  <details class="card error-details" open>
-    <summary>Подробности ошибки</summary>
-    <dl>
-      <dt>Тип</dt><dd><%= details.name %></dd>
-      <dt>Сообщение</dt><dd><%= details.message %></dd>
-      <% if (details.code) { %><dt>Код</dt><dd><%= details.code %></dd><% } %>
-    </dl>
-    <pre><%= details.stack %></pre>
-  </details>
-<% } %>
 
 <%- include('partials/footer') %>
