@@ -20,7 +20,7 @@ router.patch('/', authMiddleware, async (req, res) => {
   const user = await User.findByIdAndUpdate(
     req.user.id,
     { $set: update },
-    { new: true, runValidators: true }
+    { returnDocument: 'after', runValidators: true }
   );
   res.json({ success: true, data: user });
 });

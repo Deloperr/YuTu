@@ -128,7 +128,7 @@ const registerHandlers = (socket) => {
       const post = await Post.findByIdAndUpdate(
         postId,
         { $push: { comments: { author: name, text } } },
-        { new: true, runValidators: true, projection: 'comments' }
+        { returnDocument: 'after', runValidators: true, projection: 'comments' }
       );
       if (!post) return ack({ ok: false, error: 'Пост не найден' });
       const comment = post.comments[post.comments.length - 1];

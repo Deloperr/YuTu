@@ -89,7 +89,7 @@ router.get('/:id', checkId('id'), async (req, res) => {
   const post = await Post.findByIdAndUpdate(
     req.params.id,
     { $inc: { views: 1 } },
-    { new: true }
+    { returnDocument: 'after' }
   ).populate('authorId', 'email role profile');
   if (!post) return notFound(res);
   res.json({ success: true, data: post });
@@ -114,7 +114,7 @@ router.put('/:id', authMiddleware, checkId('id'), async (req, res) => {
   const post = await Post.findByIdAndUpdate(
     req.params.id,
     { title, content, author: author || undefined, tags, status },
-    { new: true, runValidators: true, omitUndefined: true }
+    { returnDocument: 'after', runValidators: true, omitUndefined: true }
   ).select('-ratings');
   if (!post) return notFound(res);
   broadcast(req, 'post:updated', post);
@@ -140,7 +140,7 @@ router.post('/:id/comments', authMiddleware, checkId('id'), async (req, res) => 
   const post = await Post.findByIdAndUpdate(
     req.params.id,
     { $push: { comments: { author, text } } },
-    { new: true, runValidators: true }
+    { returnDocument: 'after', runValidators: true }
   );
   if (!post) return notFound(res);
   const comment = post.comments[post.comments.length - 1];
@@ -156,7 +156,7 @@ router.patch(
     const post = await Post.findOneAndUpdate(
       { _id: req.params.id, 'comments._id': req.params.commentId },
       { $inc: { 'comments.$.likes': 1 } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!post) {
       return res.status(404).json({ success: false, error: 'Комментарий не найден' });
@@ -188,7 +188,7 @@ router.post('/:id/tags', authMiddleware, checkId('id'), async (req, res) => {
   const post = await Post.findByIdAndUpdate(
     req.params.id,
     { $addToSet: { tags: tag } },
-    { new: true }
+    { returnDocument: 'after' }
   ).select('title tags');
   if (!post) return notFound(res);
   res.json({ success: true, data: post });
