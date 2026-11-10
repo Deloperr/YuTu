@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const Post = require('../models/Post');
 const { authMiddleware } = require('../middleware/auth');
+const { broadcast } = require('../socket');
 
 const router = express.Router();
 
@@ -104,6 +105,7 @@ router.post('/', authMiddleware, async (req, res) => {
     author: (author || '').trim() || req.user.email,
     authorId: req.user.id
   });
+  broadcast(req, 'post:created', post);
   res.status(201).json({ success: true, data: post, message: 'Пост создан' });
 });
 
@@ -115,12 +117,14 @@ router.put('/:id', authMiddleware, checkId('id'), async (req, res) => {
     { new: true, runValidators: true, omitUndefined: true }
   ).select('-ratings');
   if (!post) return notFound(res);
+  broadcast(req, 'post:updated', post);
   res.json({ success: true, data: post, message: 'Пост обновлён' });
 });
 
 router.delete('/:id', authMiddleware, checkId('id'), async (req, res) => {
   const post = await Post.findByIdAndDelete(req.params.id);
   if (!post) return notFound(res);
+  broadcast(req, 'post:deleted', { id: post.id, title: post.title });
   res.json({ success: true, data: post, message: 'Пост удалён' });
 });
 
@@ -140,6 +144,8 @@ router.post('/:id/comments', authMiddleware, checkId('id'), async (req, res) => 
   );
   if (!post) return notFound(res);
   const comment = post.comments[post.comments.length - 1];
+  broadcast(req, 'comment:new', { postId: post.id, comment }, post.id);
+  broadcast(req, 'post:comments', { postId: post.id, count: post.comments.length });
   res.status(201).json({ success: true, data: comment, message: 'Комментарий добавлен' });
 });
 

@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const connectDB = require('./db');
 const User = require('./models/User');
 const Post = require('./models/Post');
+const Message = require('./models/Message');
 
 const posts = [
   ['Как начать вести блог', 'Выбор темы и регулярность публикаций', 'Анна', ['блог', 'советы']],
@@ -26,8 +27,8 @@ const comments = [
 
 (async () => {
   await connectDB();
-  await Promise.all([User.deleteMany({}), Post.deleteMany({})]);
-  await Promise.all([User.syncIndexes(), Post.syncIndexes()]);
+  await Promise.all([User.deleteMany({}), Post.deleteMany({}), Message.deleteMany({})]);
+  await Promise.all([User.syncIndexes(), Post.syncIndexes(), Message.syncIndexes()]);
 
   const [admin, user] = await User.create([
     {
@@ -67,7 +68,12 @@ const comments = [
   });
   await Post.insertMany(docs);
 
-  console.log(`Добавлено: пользователей ${await User.countDocuments()}, постов ${await Post.countDocuments()}`);
+  await Message.insertMany([
+    { author: 'Администратор', userId: admin._id, text: 'Добро пожаловать в общий чат YuTu!', createdAt: new Date(now - 7200000) },
+    { author: 'Артём', userId: user._id, text: 'Привет! Обсуждения под постами теперь обновляются вживую', createdAt: new Date(now - 3600000) }
+  ]);
+
+  console.log(`Добавлено: пользователей ${await User.countDocuments()}, постов ${await Post.countDocuments()}, сообщений ${await Message.countDocuments()}`);
   await mongoose.disconnect();
 })().catch(async (err) => {
   console.error(err);

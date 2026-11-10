@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { socket } from './socket';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -8,6 +9,7 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (socket.id) config.headers['X-Socket-Id'] = socket.id;
   return config;
 });
 

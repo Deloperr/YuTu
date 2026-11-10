@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { fetchPosts, addPost, updatePost, deletePost, axios } from '../api';
 import useDebounce from '../hooks/useDebounce';
+import useSocketEvent from '../hooks/useSocketEvent';
 import Avatar from './Avatar';
+import PostDiscussion from './PostDiscussion';
 
 const PAGE_SIZE = 5;
 
@@ -23,6 +25,7 @@ function PostList({ user }) {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('date');
   const [notice, setNotice] = useState(null);
+  const [openId, setOpenId] = useState(null);
 
   const debouncedSearch = useDebounce(search, 500);
 
@@ -92,6 +95,31 @@ function PostList({ user }) {
     setAuthor('');
     setEditingId(null);
   };
+
+  useSocketEvent('post:created', (post) => {
+    if (debouncedSearch || sortBy !== 'date') return;
+    if (posts.some((p) => p.id === post.id)) return;
+    setPosts((prev) => [{ ...post, fresh: true }, ...prev]);
+    setTotal((t) => t + 1);
+  });
+
+  useSocketEvent('post:updated', (post) => {
+    setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, ...post } : p)));
+  });
+
+  useSocketEvent('post:deleted', ({ id }) => {
+    if (!posts.some((p) => p.id === id)) return;
+    setPosts((prev) => prev.filter((p) => p.id !== id));
+    setTotal((t) => t - 1);
+    if (editingId === id) resetForm();
+    if (openId === id) setOpenId(null);
+  });
+
+  useSocketEvent('post:comments', ({ postId, count }) => {
+    setPosts((prev) =>
+      prev.map((p) => (p.id === postId ? { ...p, commentCount: count } : p))
+    );
+  });
 
   const handleAdd = async (fields) => {
     const tempId = Date.now();
@@ -232,7 +260,7 @@ function PostList({ user }) {
           {posts.map((post) => (
             <article
               key={post.id}
-              className={`post-card ${post.pending ? 'pending' : ''}`}
+              className={`post-card ${post.pending ? 'pending' : ''} ${post.fresh ? 'fresh' : ''}`}
             >
               <header className="post-head">
                 <Avatar name={post.author} />
@@ -249,12 +277,17 @@ function PostList({ user }) {
               <footer className="post-footer">
                 <div className="post-stats">
                   <Stars value={post.rating} />
-                  <span className="comments">
+                  <button
+                    className={`comments ${openId === post.id ? 'active' : ''}`}
+                    onClick={() => setOpenId(openId === post.id ? null : post.id)}
+                    disabled={post.pending}
+                    title="Обсуждение в реальном времени"
+                  >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />
                     </svg>
-                    {post.comments ? post.comments.length : 0}
-                  </span>
+                    {post.commentCount ?? post.comments?.length ?? 0}
+                  </button>
                 </div>
                 {user && (
                   <div className="post-actions">
@@ -275,6 +308,9 @@ function PostList({ user }) {
                   </div>
                 )}
               </footer>
+              {openId === post.id && (
+                <PostDiscussion postId={post.id} user={user} />
+              )}
             </article>
           ))}
         </div>

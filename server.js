@@ -1,8 +1,10 @@
 require('dotenv').config();
+const http = require('http');
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const connectDB = require('./db');
+const { initSocket } = require('./socket');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -32,7 +34,7 @@ app.use('/', api);
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'Blog API работает (MongoDB)',
+    message: 'Blog API работает (MongoDB + Socket.IO)',
     database: mongoose.connection.name,
     endpoints: {
       auth: '/auth/register, /auth/login',
@@ -44,7 +46,8 @@ app.get('/', (req, res) => {
       tags: '/posts/:id/tags, /posts/tag/:tag',
       rate: '/posts/:id/rate',
       profile: '/profile',
-      admin: '/admin/users'
+      admin: '/admin/users',
+      socket: 'ws://localhost:' + port + '/socket.io/'
     }
   });
 });
@@ -74,9 +77,12 @@ app.use((err, req, res, next) => {
 
 connectDB()
   .then(() => {
-    const server = app.listen(port, () => {
+    const server = http.createServer(app);
+    initSocket(server);
+    server.listen(port, () => {
       console.log(`Сервер запущен на порту ${port}`);
       console.log(`http://localhost:${port}`);
+      console.log('Socket.IO готов к подключениям');
     });
     server.on('error', (err) => {
       console.error(err.code === 'EADDRINUSE' ? `Порт ${port} занят` : err.message);

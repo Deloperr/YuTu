@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import LoginForm from './components/LoginForm';
 import PostList from './components/PostList';
 import ThemeToggle from './components/ThemeToggle';
+import OnlineStatus from './components/OnlineStatus';
+import LiveChat from './components/LiveChat';
+import LiveToasts from './components/LiveToasts';
+import { socket } from './socket';
 import './App.css';
 
 const loadUser = () => {
@@ -24,6 +28,23 @@ function App() {
     setUser(null);
   };
 
+  useEffect(() => {
+    socket.connect();
+    return () => socket.disconnect();
+  }, [user?.id]);
+
+  useEffect(() => {
+    const handleError = (err) => {
+      if (!localStorage.getItem('token') || socket.active) return;
+      console.warn('Socket.IO:', err.message);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+    };
+    socket.on('connect_error', handleError);
+    return () => socket.off('connect_error', handleError);
+  }, []);
+
   return (
     <>
       <header className="topbar">
@@ -32,6 +53,7 @@ function App() {
             Yu<span>Tu</span>
           </a>
           <div className="topbar-right">
+            <OnlineStatus />
             <ThemeToggle />
             <LoginForm user={user} onLogin={setUser} onLogout={logout} />
           </div>
@@ -43,11 +65,15 @@ function App() {
           <p className="hero-kicker">Блоговая платформа</p>
           <h1>Заметки, статьи и обсуждения</h1>
           <p className="hero-text">
-            Делитесь мыслями, читайте других авторов и оценивайте публикации.
+            Делитесь мыслями, обсуждайте записи в реальном времени и общайтесь
+            в общем чате.
           </p>
         </section>
         <PostList user={user} />
       </main>
+
+      <LiveChat user={user} />
+      <LiveToasts />
 
       <footer className="footer">
         <div className="footer-inner">
