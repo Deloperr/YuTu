@@ -1,4 +1,6 @@
 require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
 const http = require('http');
 const express = require('express');
 const cors = require('cors');
@@ -11,6 +13,28 @@ const port = process.env.PORT || 3000;
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+if (process.env.LOG_DIR) {
+  fs.mkdirSync(process.env.LOG_DIR, { recursive: true });
+  const log = fs.createWriteStream(path.join(process.env.LOG_DIR, 'access.log'), { flags: 'a' });
+  app.use((req, res, next) => {
+    if (req.path === '/health') return next();
+    const start = Date.now();
+    res.on('finish', () => {
+      log.write(`${new Date().toISOString()} ${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - start}ms\n`);
+    });
+    next();
+  });
+}
+
+app.get('/health', (req, res) => {
+  const db = mongoose.connection.readyState === 1;
+  res.status(db ? 200 : 503).json({
+    status: db ? 'ok' : 'error',
+    database: db ? 'connected' : 'disconnected',
+    uptime: Math.round(process.uptime())
+  });
+});
 
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');

@@ -23,6 +23,37 @@ npm install
 # Установить dev-зависимости
 npm install nodemon --save-dev
 
+## 🐳 Запуск в Docker (ЛР8, ветка 28)
+
+Всё приложение – MongoDB, сервер, клиент и веб-интерфейс БД – запускается одной командой:
+
+```bash
+cp .env.example .env      # при желании поменять пароли MONGO_PASSWORD, ME_PASSWORD, JWT_SECRET
+docker compose up --build -d
+docker compose exec backend npm run seed   # демо-данные (один раз)
+```
+
+| Адрес | Сервис |
+|---|---|
+| http://localhost | клиент (nginx), `/api` и `/socket.io` проксируются на backend |
+| http://localhost:3000 | backend напрямую, `GET /health` – проверка состояния |
+| http://localhost:8081 | mongo-express (логин и пароль – `ME_USER` / `ME_PASSWORD`) |
+
+- `Dockerfile` – образ backend на `node:22-alpine`, только production-зависимости, запуск от пользователя `node`, `HEALTHCHECK` по `/health`.
+- `blog-client/Dockerfile` – многоэтапная сборка: Vite собирает клиент, в итоговый образ `nginx:1.27-alpine` копируется только папка `dist` (≈ 76 МБ).
+- `blog-client/nginx.conf` – раздача SPA, обратный прокси для `/api/` и `/socket.io/` (с `Upgrade` для WebSocket).
+- `docker-compose.yml` – healthcheck MongoDB и backend с `depends_on: condition: service_healthy`, тома `mongo-data` (данные БД) и `backend-logs` (журнал запросов `/app/logs/access.log`), сети `public` и внутренняя `db`: MongoDB недоступна ни с хоста, ни из контейнера frontend.
+- Порты меняются в `.env`: `BACKEND_PORT`, `FRONTEND_PORT`, `ME_PORT`.
+- Если Docker Hub недоступен, в Docker Desktop → Settings → Docker Engine добавить `"registry-mirrors": ["https://mirror.gcr.io", "https://dockerhub.timeweb.cloud"]`.
+
+```bash
+docker compose ps                 # состояние и healthcheck
+docker compose logs -f backend    # логи сервера
+docker compose exec backend sh    # оболочка в контейнере
+docker compose down               # остановить (данные в томе сохраняются)
+docker compose down -v            # остановить и удалить тома
+```
+
 ## ⚡ Реальное время на Socket.IO (ЛР7, ветка 27)
 
 Сервер из ЛР6 (Express + MongoDB) дополнен Socket.IO: HTTP-сервер создаётся через `http.createServer(app)`,
