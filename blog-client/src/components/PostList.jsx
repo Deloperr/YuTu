@@ -18,6 +18,7 @@ function PostList({
   composeOpen,
   onComposeOpen,
   onChanged,
+  onOpen,
 }) {
   const [posts, setPosts] = useState([]);
   const [total, setTotal] = useState(0);
@@ -292,7 +293,13 @@ function PostList({
               className={`post ${post.pending ? 'pending' : ''} ${post.fresh ? 'fresh' : ''} ${openId === post.id ? 'open' : ''}`}
             >
               <Avatar name={post.author} size={44} />
-              <div className="post-body">
+              <div
+                className="post-body"
+                onClick={(e) => {
+                  if (post.pending || e.target.closest('button, input, textarea, .discussion')) return;
+                  onOpen(post.id);
+                }}
+              >
                 <header className="post-meta">
                   <span className="post-author">{post.author}</span>
                   <span className="post-date">· {formatDate(post.createdAt)}</span>
@@ -300,6 +307,9 @@ function PostList({
                 </header>
                 <h2 className="post-title">{post.title}</h2>
                 <p className="post-content">{post.content}</p>
+                {post.content?.length > 280 && (
+                  <span className="post-more">Читать полностью</span>
+                )}
                 {post.tags?.length > 0 && (
                   <div className="post-tags">
                     {post.tags.map((t) => (
@@ -320,6 +330,10 @@ function PostList({
                     {post.commentCount ?? post.comments?.length ?? 0}
                   </button>
                   <Stars value={post.rating} />
+                  <span className="post-views" title="Просмотры">
+                    <Icon name="eye" size={17} />
+                    {post.views ?? 0}
+                  </span>
                   {user && (
                     <div className="post-actions">
                       <button

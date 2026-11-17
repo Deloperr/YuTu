@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import RightPanel from './components/RightPanel';
 import MobileNav from './components/MobileNav';
 import PostList from './components/PostList';
+import PostView from './components/PostView';
 import LoginForm from './components/LoginForm';
 import ThemeToggle from './components/ThemeToggle';
 import LiveChat from './components/LiveChat';
@@ -11,6 +12,11 @@ import Icon from './components/Icon';
 import useStats from './hooks/useStats';
 import { socket } from './socket';
 import './App.css';
+
+const postFromHash = () => {
+  const match = window.location.hash.match(/^#\/post\/([0-9a-f]{24})$/);
+  return match ? match[1] : null;
+};
 
 const loadUser = () => {
   const saved = localStorage.getItem('user');
@@ -27,6 +33,44 @@ function App() {
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeKey, setComposeKey] = useState(0);
   const { stats, reload } = useStats();
+  const [postId, setPostId] = useState(postFromHash);
+  const feedScroll = useRef(0);
+
+  useEffect(() => {
+    const onPop = () => setPostId(postFromHash());
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  useEffect(() => {
+    if (postId) {
+      window.scrollTo(0, 0);
+    } else {
+      requestAnimationFrame(() => window.scrollTo(0, feedScroll.current));
+    }
+  }, [postId]);
+
+  const openPost = (id) => {
+    feedScroll.current = window.scrollY;
+    window.history.pushState({ post: id }, '', `#/post/${id}`);
+    setPostId(id);
+  };
+
+  const closePost = () => {
+    if (window.history.state?.post) {
+      window.history.back();
+    } else {
+      window.history.replaceState(null, '', window.location.pathname);
+      setPostId(null);
+    }
+  };
+
+  const leavePost = () => {
+    if (!postId) return;
+    feedScroll.current = 0;
+    window.history.replaceState(null, '', window.location.pathname);
+    setPostId(null);
+  };
 
   useEffect(() => {
     const handler = () => setUser(null);
@@ -65,6 +109,7 @@ function App() {
       return;
     }
     setChatOpen(false);
+    leavePost();
     if (id === 'home') {
       setSortBy('date');
       setTag(null);
@@ -82,6 +127,7 @@ function App() {
   };
 
   const chooseTag = (value) => {
+    leavePost();
     setTag(value);
     scrollTop();
   };
@@ -113,70 +159,93 @@ function App() {
             </div>
           </div>
 
-          <div className="main-title">
-            <h1>{title}</h1>
-            {tag && (
-              <button className="chip chip-reset" onClick={() => setTag(null)}>
-                Все записи
-                <Icon name="close" size={14} />
+          {postId ? (
+            <div className="main-title main-title--post">
+              <button className="icon-btn" onClick={closePost} aria-label="Назад">
+                <Icon name="back" size={22} />
               </button>
+              <h1>Запись</h1>
+            </div>
+          ) : (
+            <>
+              <div className="main-title">
+                <h1>{title}</h1>
+                {tag && (
+                  <button className="chip chip-reset" onClick={() => setTag(null)}>
+                    Все записи
+                    <Icon name="close" size={14} />
+                  </button>
+                )}
+              </div>
+
+              <div className="feed-tabs" role="tablist">
+                <button
+                  role="tab"
+                  className={sortBy === 'date' ? 'active' : ''}
+                  onClick={() => setSortBy('date')}
+                >
+                  <span>Новые</span>
+                </button>
+                <button
+                  role="tab"
+                  className={sortBy === 'rating' ? 'active' : ''}
+                  onClick={() => setSortBy('rating')}
+                >
+                  <span>Лучшие</span>
+                </button>
+              </div>
+            </>
+          )}
+        </header>
+
+        {postId && (
+          <PostView
+            key={postId}
+            postId={postId}
+            user={user}
+            onBack={closePost}
+            onTag={chooseTag}
+          />
+        )}
+
+        <div className="feed-area" hidden={!!postId}>
+          <div className="main-tools">
+            <label className="search">
+              <Icon name="search" size={18} />
+              <input
+                placeholder="Поиск по блогу"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </label>
+            {stats?.popularTags?.length > 0 && (
+              <div className="tag-chips">
+                {stats.popularTags.map((t) => (
+                  <button
+                    key={t.tag}
+                    className={`chip ${tag === t.tag ? 'active' : ''}`}
+                    onClick={() => chooseTag(tag === t.tag ? null : t.tag)}
+                  >
+                    #{t.tag}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
-          <div className="feed-tabs" role="tablist">
-            <button
-              role="tab"
-              className={sortBy === 'date' ? 'active' : ''}
-              onClick={() => setSortBy('date')}
-            >
-              <span>Новые</span>
-            </button>
-            <button
-              role="tab"
-              className={sortBy === 'rating' ? 'active' : ''}
-              onClick={() => setSortBy('rating')}
-            >
-              <span>Лучшие</span>
-            </button>
-          </div>
-
-        </header>
-
-        <div className="main-tools">
-          <label className="search">
-            <Icon name="search" size={18} />
-            <input
-              placeholder="Поиск по блогу"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </label>
-          {stats?.popularTags?.length > 0 && (
-            <div className="tag-chips">
-              {stats.popularTags.map((t) => (
-                <button
-                  key={t.tag}
-                  className={`chip ${tag === t.tag ? 'active' : ''}`}
-                  onClick={() => chooseTag(tag === t.tag ? null : t.tag)}
-                >
-                  #{t.tag}
-                </button>
-              ))}
-            </div>
-          )}
+          <PostList
+            user={user}
+            search={search}
+            sortBy={sortBy}
+            tag={tag}
+            onTag={chooseTag}
+            composeKey={composeKey}
+            composeOpen={composeOpen}
+            onComposeOpen={setComposeOpen}
+            onChanged={reload}
+            onOpen={openPost}
+          />
         </div>
-
-        <PostList
-          user={user}
-          search={search}
-          sortBy={sortBy}
-          tag={tag}
-          onTag={chooseTag}
-          composeKey={composeKey}
-          composeOpen={composeOpen}
-          onComposeOpen={setComposeOpen}
-          onChanged={reload}
-        />
       </main>
 
       <RightPanel
@@ -188,7 +257,7 @@ function App() {
         stats={stats}
       />
 
-      {user && (
+      {user && !postId && (
         <button className="fab" onClick={compose} aria-label="Новая запись">
           <Icon name="plus" size={26} />
         </button>

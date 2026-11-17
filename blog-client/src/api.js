@@ -39,6 +39,8 @@ export const register = (email, password) =>
   api.post('/auth/register', { email, password });
 
 export const fetchStats = () => api.get('/posts/stats');
+export const fetchPost = (id, signal) => api.get(`/posts/${id}`, { signal });
+export const ratePost = (id, rating) => api.post(`/posts/${id}/rate`, { rating });
 
 export const fetchPosts = (params, signal) =>
   api.get('/posts', { params, signal });

@@ -207,6 +207,7 @@ router.post('/:id/rate', authMiddleware, checkId('id'), async (req, res) => {
   const post = await Post.findById(req.params.id);
   if (!post) return notFound(res);
   await post.rate(req.user.id, value);
+  broadcast(req, 'post:updated', { id: post.id, rating: post.rating });
   res.json({
     success: true,
     data: { averageRating: post.rating, ratingCount: post.ratings.length },
