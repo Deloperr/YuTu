@@ -38,6 +38,8 @@ export const login = (email, password) =>
 export const register = (email, password) =>
   api.post('/auth/register', { email, password });
 
+export const fetchStats = () => api.get('/posts/stats');
+
 export const fetchPosts = (params, signal) =>
   api.get('/posts', { params, signal });
 export const addPost = (post) => api.post('/posts', post);

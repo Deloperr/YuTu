@@ -1,13 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchPosts, addPost, updatePost, deletePost, axios } from '../api';
 import useDebounce from '../hooks/useDebounce';
 import useSocketEvent from '../hooks/useSocketEvent';
 import Avatar from './Avatar';
 import PostDiscussion from './PostDiscussion';
+import Icon from './Icon';
 
 const PAGE_SIZE = 5;
 
-function PostList({ user }) {
+function PostList({
+  user,
+  search,
+  sortBy,
+  tag,
+  onTag,
+  composeKey,
+  composeOpen,
+  onComposeOpen,
+  onChanged,
+}) {
   const [posts, setPosts] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -22,12 +33,12 @@ function PostList({ user }) {
   const [author, setAuthor] = useState('');
   const [editingId, setEditingId] = useState(null);
 
-  const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState('date');
   const [notice, setNotice] = useState(null);
   const [openId, setOpenId] = useState(null);
 
   const debouncedSearch = useDebounce(search, 500);
+  const titleRef = useRef(null);
+  const composerRef = useRef(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -37,7 +48,7 @@ function PostList({ user }) {
       setError(null);
       try {
         const { data } = await fetchPosts(
-          { search: debouncedSearch, sort: sortBy, page: 1, limit: PAGE_SIZE },
+          { search: debouncedSearch, sort: sortBy, tag, page: 1, limit: PAGE_SIZE },
           controller.signal
         );
         setPosts(data.data);
@@ -54,7 +65,13 @@ function PostList({ user }) {
 
     load();
     return () => controller.abort();
-  }, [debouncedSearch, sortBy, reloadKey]);
+  }, [debouncedSearch, sortBy, tag, reloadKey]);
+
+  useEffect(() => {
+    if (!composeKey) return;
+    composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    titleRef.current?.focus({ preventScroll: true });
+  }, [composeKey]);
 
   useEffect(() => {
     if (!notice) return;
@@ -72,6 +89,7 @@ function PostList({ user }) {
       const { data } = await fetchPosts({
         search: debouncedSearch,
         sort: sortBy,
+        tag,
         page: page + 1,
         limit: PAGE_SIZE,
       });
@@ -97,7 +115,7 @@ function PostList({ user }) {
   };
 
   useSocketEvent('post:created', (post) => {
-    if (debouncedSearch || sortBy !== 'date') return;
+    if (debouncedSearch || tag || sortBy !== 'date') return;
     if (posts.some((p) => p.id === post.id)) return;
     setPosts((prev) => [{ ...post, fresh: true }, ...prev]);
     setTotal((t) => t + 1);
@@ -141,6 +159,7 @@ function PostList({ user }) {
         prev.map((p) => (p.id === tempId ? { ...data.data, comments: [] } : p))
       );
       setNotice({ type: 'success', text: 'Пост создан' });
+      onChanged?.();
     } catch (err) {
       setPosts((prev) => prev.filter((p) => p.id !== tempId));
       setTotal((t) => t - 1);
@@ -178,6 +197,7 @@ function PostList({ user }) {
     try {
       await deletePost(id);
       setNotice({ type: 'success', text: 'Пост удалён' });
+      onChanged?.();
     } catch (err) {
       setPosts((prev) => {
         const copy = [...prev];
@@ -205,6 +225,12 @@ function PostList({ user }) {
       handleAdd(fields);
     }
     resetForm();
+    onComposeOpen(false);
+  };
+
+  const closeComposer = () => {
+    resetForm();
+    onComposeOpen(false);
   };
 
   const startEdit = (post) => {
@@ -212,6 +238,9 @@ function PostList({ user }) {
     setTitle(post.title);
     setContent(post.content);
     setAuthor(post.author);
+    onComposeOpen(true);
+    composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    titleRef.current?.focus({ preventScroll: true });
   };
 
   const handleKeyDown = (e) => {
@@ -228,7 +257,7 @@ function PostList({ user }) {
       return (
         <div className="loading">
           <div className="spinner" />
-          Загрузка постов...
+          Загрузка записей...
         </div>
       );
     }
@@ -249,7 +278,7 @@ function PostList({ user }) {
     if (posts.length === 0) {
       return (
         <div className="empty">
-          <h3>Постов не найдено</h3>
+          <h3>Записей не найдено</h3>
           <p>Попробуйте изменить запрос или напишите первую запись.</p>
         </div>
       );
@@ -260,57 +289,64 @@ function PostList({ user }) {
           {posts.map((post) => (
             <article
               key={post.id}
-              className={`post-card ${post.pending ? 'pending' : ''} ${post.fresh ? 'fresh' : ''}`}
+              className={`post ${post.pending ? 'pending' : ''} ${post.fresh ? 'fresh' : ''} ${openId === post.id ? 'open' : ''}`}
             >
-              <header className="post-head">
-                <Avatar name={post.author} />
-                <div>
-                  <div className="post-author">{post.author}</div>
-                  <time className="post-date">
-                    {formatDate(post.createdAt)}
-                  </time>
-                </div>
-                {post.pending && <span className="badge">Сохранение...</span>}
-              </header>
-              <h2 className="post-title">{post.title}</h2>
-              <p className="post-content">{post.content}</p>
-              <footer className="post-footer">
-                <div className="post-stats">
-                  <Stars value={post.rating} />
+              <Avatar name={post.author} size={44} />
+              <div className="post-body">
+                <header className="post-meta">
+                  <span className="post-author">{post.author}</span>
+                  <span className="post-date">· {formatDate(post.createdAt)}</span>
+                  {post.pending && <span className="badge">Сохранение...</span>}
+                </header>
+                <h2 className="post-title">{post.title}</h2>
+                <p className="post-content">{post.content}</p>
+                {post.tags?.length > 0 && (
+                  <div className="post-tags">
+                    {post.tags.map((t) => (
+                      <button key={t} onClick={() => onTag(t)}>
+                        #{t}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <footer className="post-footer">
                   <button
                     className={`comments ${openId === post.id ? 'active' : ''}`}
                     onClick={() => setOpenId(openId === post.id ? null : post.id)}
                     disabled={post.pending}
                     title="Обсуждение в реальном времени"
                   >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />
-                    </svg>
+                    <Icon name="chat" size={18} />
                     {post.commentCount ?? post.comments?.length ?? 0}
                   </button>
-                </div>
-                {user && (
-                  <div className="post-actions">
-                    <button
-                      className="btn btn-text"
-                      onClick={() => startEdit(post)}
-                      disabled={post.pending}
-                    >
-                      Редактировать
-                    </button>
-                    <button
-                      className="btn btn-text danger"
-                      onClick={() => handleDelete(post.id)}
-                      disabled={post.pending}
-                    >
-                      Удалить
-                    </button>
-                  </div>
+                  <Stars value={post.rating} />
+                  {user && (
+                    <div className="post-actions">
+                      <button
+                        className="btn btn-text"
+                        onClick={() => startEdit(post)}
+                        disabled={post.pending}
+                        title="Изменить"
+                      >
+                        <Icon name="pen" size={17} />
+                        <span className="btn-label">Изменить</span>
+                      </button>
+                      <button
+                        className="btn btn-text danger"
+                        onClick={() => handleDelete(post.id)}
+                        disabled={post.pending}
+                        title="Удалить"
+                      >
+                        <Icon name="trash" size={17} />
+                        <span className="btn-label">Удалить</span>
+                      </button>
+                    </div>
+                  )}
+                </footer>
+                {openId === post.id && (
+                  <PostDiscussion postId={post.id} user={user} />
                 )}
-              </footer>
-              {openId === post.id && (
-                <PostDiscussion postId={post.id} user={user} />
-              )}
+              </div>
             </article>
           ))}
         </div>
@@ -320,7 +356,7 @@ function PostList({ user }) {
             onClick={loadMore}
             disabled={loadingMore}
           >
-            {loadingMore ? 'Загрузка...' : 'Загрузить ещё'}
+            {loadingMore ? 'Загрузка...' : 'Показать ещё'}
           </button>
         )}
       </>
@@ -328,82 +364,70 @@ function PostList({ user }) {
   };
 
   return (
-    <>
+    <div className="feed">
       {user ? (
-        <section className={`composer ${editingId ? 'editing' : ''}`}>
-          <div className="composer-head">
-            <Avatar name={user.email} size={36} />
-            <span>{editingId ? 'Редактирование записи' : 'Новая запись'}</span>
-          </div>
-          <input
-            className="composer-title"
-            placeholder="Заголовок"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={handleKeyDown}
+        <>
+          <div
+            className={`sheet-backdrop ${composeOpen ? 'open' : ''}`}
+            onClick={closeComposer}
           />
-          <textarea
-            className="composer-content"
-            placeholder="О чём хотите рассказать?"
-            rows={3}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          <div className="composer-bottom">
-            <input
-              className="composer-author"
-              placeholder="Автор (по умолчанию email)"
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
-            <div className="composer-buttons">
-              {editingId && (
-                <button className="btn btn-ghost" onClick={resetForm}>
-                  Отмена
-                </button>
-              )}
-              <button className="btn btn-primary" onClick={handleSubmit}>
-                {editingId ? 'Сохранить' : 'Опубликовать'}
+          <section
+            ref={composerRef}
+            className={`composer ${editingId ? 'editing' : ''} ${composeOpen ? 'sheet-open' : ''}`}
+          >
+            <div className="composer-sheet-head">
+              <button className="icon-btn" onClick={closeComposer} aria-label="Закрыть">
+                <Icon name="close" size={20} />
               </button>
+              <span>{editingId ? 'Редактирование' : 'Новая запись'}</span>
             </div>
-          </div>
-        </section>
+            <Avatar name={user.email} size={44} />
+            <div className="composer-body">
+              {editingId && <div className="composer-mode">Редактирование записи</div>}
+              <input
+                ref={titleRef}
+                className="composer-title"
+                placeholder="Заголовок"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+              <textarea
+                className="composer-content"
+                placeholder="О чём хотите рассказать?"
+                rows={2}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+              <div className="composer-bottom">
+                <input
+                  className="composer-author"
+                  placeholder="Автор (по умолчанию email)"
+                  value={author}
+                  onChange={(e) => setAuthor(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                />
+                <div className="composer-buttons">
+                  {editingId && (
+                    <button className="btn btn-ghost" onClick={closeComposer}>
+                      Отмена
+                    </button>
+                  )}
+                  <button className="btn btn-primary" onClick={handleSubmit}>
+                    {editingId ? 'Сохранить' : 'Опубликовать'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </>
       ) : (
-        <p className="hint">Войдите, чтобы публиковать и редактировать записи.</p>
+        <p className="hint">Войдите, чтобы публиковать, редактировать и обсуждать записи.</p>
       )}
 
-      <div className="toolbar">
-        <div className="search">
-          <svg className="search-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="11" cy="11" r="7" />
-            <path d="M20 20l-3.5-3.5" />
-          </svg>
-          <input
-            placeholder="Поиск по заголовку, тексту или автору"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="tabs">
-          <button
-            className={sortBy === 'date' ? 'active' : ''}
-            onClick={() => setSortBy('date')}
-          >
-            Новые
-          </button>
-          <button
-            className={sortBy === 'rating' ? 'active' : ''}
-            onClick={() => setSortBy('rating')}
-          >
-            Лучшие
-          </button>
-        </div>
-      </div>
-
       <p className="stats">
-        Найдено постов: {total} · Показано: {posts.length}
+        Найдено записей: {total} · Показано: {posts.length}
         {search !== debouncedSearch && ' · Ожидание ввода...'}
         {pendingCount > 0 && ` · Отправка на сервер: ${pendingCount}`}
       </p>
@@ -411,7 +435,7 @@ function PostList({ user }) {
       {renderList()}
 
       {notice && <div className={`toast ${notice.type}`}>{notice.text}</div>}
-    </>
+    </div>
   );
 }
 
@@ -427,11 +451,14 @@ function Stars({ value }) {
   );
 }
 
-const formatDate = (value) =>
-  new Date(value || Date.now()).toLocaleDateString('ru-RU', {
+const formatDate = (value) => {
+  const date = new Date(value || Date.now());
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString('ru-RU', {
     day: 'numeric',
-    month: 'long',
-    year: 'numeric',
+    month: 'short',
+    ...(sameYear ? {} : { year: 'numeric' }),
   });
+};
 
 export default PostList;

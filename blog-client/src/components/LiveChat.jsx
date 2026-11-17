@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { socket, emitWithAck } from '../socket';
 import useSocketEvent from '../hooks/useSocketEvent';
 import Avatar from './Avatar';
+import Icon from './Icon';
 import formatTime from '../utils/formatTime';
 
 const TYPING_IDLE_MS = 2000;
@@ -10,14 +11,19 @@ const TYPING_EXPIRE_MS = 4000;
 const displayName = (user) =>
   user.profile?.displayName || user.email.split('@')[0];
 
-function LiveChat({ user }) {
-  const [open, setOpen] = useState(false);
+function LiveChat({ user, open, onOpenChange, onUnread }) {
   const [messages, setMessages] = useState([]);
   const [unread, setUnread] = useState(0);
   const [text, setText] = useState('');
   const [typing, setTyping] = useState([]);
   const [error, setError] = useState(null);
   const [connected, setConnected] = useState(socket.connected);
+
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) setUnread(0);
+  }
 
   const listRef = useRef(null);
   const typingTimers = useRef({});
@@ -76,10 +82,11 @@ function LiveChat({ user }) {
     };
   }, []);
 
-  const toggle = () => {
-    setUnread(0);
-    setOpen(!open);
-  };
+  useEffect(() => {
+    onUnread?.(unread);
+  }, [unread, onUnread]);
+
+  const toggle = () => onOpenChange(!open);
 
   const stopTyping = () => {
     clearTimeout(idleTimer.current);
@@ -133,33 +140,22 @@ function LiveChat({ user }) {
         : `${typing.join(', ')} печатают...`;
 
   return (
-    <>
-      <button
-        className={`chat-fab ${open ? 'active' : ''}`}
-        onClick={toggle}
-        aria-label="Общий чат"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          {open ? (
-            <path d="M6 6l12 12M18 6L6 18" />
-          ) : (
-            <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />
-          )}
-        </svg>
-        {unread > 0 && !open && <span className="chat-badge">{unread}</span>}
+    <section className={`chat-dock ${open ? 'open' : ''}`}>
+      <button className="chat-dock-head" onClick={toggle} aria-expanded={open}>
+        <span className="chat-back">
+          <Icon name="back" size={22} />
+        </span>
+        <Icon name="chat" size={20} />
+        <strong>Общий чат</strong>
+        <span className={`live-dot ${connected ? 'on' : 'off'}`} title={connected ? 'в сети' : 'переподключение...'} />
+        {unread > 0 && !open && <span className="chat-count">{unread}</span>}
+        <span className="chat-chevron">
+          <Icon name="chevron" size={20} />
+        </span>
       </button>
 
       {open && (
-        <section className="chat-panel">
-          <header className="chat-head">
-            <div>
-              <strong>Общий чат</strong>
-              <span className={`chat-state ${connected ? 'on' : 'off'}`}>
-                {connected ? 'в сети' : 'переподключение...'}
-              </span>
-            </div>
-          </header>
-
+        <div className="chat-body">
           <div className="chat-list" ref={listRef}>
             {messages.length === 0 && (
               <p className="chat-empty">Сообщений пока нет</p>
@@ -215,9 +211,9 @@ function LiveChat({ user }) {
           ) : (
             <p className="chat-guest">Войдите, чтобы писать в чат</p>
           )}
-        </section>
+        </div>
       )}
-    </>
+    </section>
   );
 }
 

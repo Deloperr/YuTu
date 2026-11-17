@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { login, register } from '../api';
 import Avatar from './Avatar';
+import Icon from './Icon';
 
-function LoginForm({ user, onLogin, onLogout }) {
+function LoginForm({ user, onLogin, onLogout, variant = 'bar' }) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('user@yutu.local');
   const [password, setPassword] = useState('');
@@ -41,25 +42,35 @@ function LoginForm({ user, onLogin, onLogout }) {
 
   if (user) {
     return (
-      <div className="account">
-        <Avatar name={user.email} size={34} />
+      <div className={`account account--${variant}`}>
+        <Avatar name={user.email} size={variant === 'sidebar' ? 40 : 34} />
         <div className="account-info">
           <span className="account-email">{user.email}</span>
           <span className="account-role">
             {user.role === 'admin' ? 'администратор' : 'автор'}
           </span>
         </div>
-        <button className="btn btn-ghost" onClick={onLogout}>
-          Выйти
+        <button
+          className="icon-btn account-logout"
+          onClick={onLogout}
+          title="Выйти"
+          aria-label="Выйти"
+        >
+          <Icon name="logout" size={20} />
         </button>
       </div>
     );
   }
 
   return (
-    <div className="auth">
-      <button className="btn btn-primary" onClick={() => setOpen(!open)}>
-        Войти
+    <div className={`auth auth--${variant}`}>
+      <button
+        className="btn btn-primary auth-open"
+        onClick={() => setOpen(!open)}
+        title="Войти"
+      >
+        <Icon name="login" size={20} />
+        <span>Войти</span>
       </button>
       {open && (
         <div className="auth-popover">
